@@ -106,6 +106,11 @@ If unsure whether a reference exists, list the contents of `.claude/_reference/`
 - Always launch `PLAN` mode when requesting a response from the user
 - NEVER make domain assumptions — always ask the user explicitly for feedback and clarification
 - Treat `docs/` as reference material — do not modify without explicit instruction
+- Tool descriptions are routing in the vanilla agent — be precise about what a tool does and does NOT return, and cross-reference related tools
+- Review tool descriptions collaboratively with the user before committing
+- Don't include pipeline/data-processing concerns in agent tool descriptions — only reference fields the agent works with
+- Agent tool functions should only pull stored values — computation belongs in the data pipeline
+- Metric tools should require game IDs — no state-level queries that could dump full datasets
 
 ### Writing Style
 
