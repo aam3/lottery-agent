@@ -238,18 +238,35 @@ Based on trace observations: adjust tool descriptions, refine system prompt
 language, add guardrails. Change one thing at a time, compare results. No intent
 routing unless traces consistently show the agent mis-navigating.
 
-### Phase 4: Visualization tools and rendering (deferred)
+### Phase 4: Structured response blocks and visualizations
 
-Added after the agent's reasoning is solid. Includes:
-- Visualization tool functions that return structured data (chart type + data
-  payload)
-- Frontend component renderer that maps tool output to Recharts components
-  inline in the chat
-- Design system integration (Outfit font, color tokens, card styles from
-  `visualization-reference.md`)
+**Architecture decision (from Phase 3 testing): Pattern 1 — Structured data → Frontend components.**
 
-This is a frontend design problem, not an agent problem. The agent just calls
-a tool and gets data back — the rendering is separate.
+Phase 3 testing revealed that free-form markdown responses cause two systemic problems: inconsistent formatting (same question type gets different layouts every time) and raw data leaking into prose despite hard rules. The fix is architectural, not prompt-based.
+
+The agent returns an array of typed content blocks instead of a markdown string. The frontend has a pre-built React component for each block type. The agent decides *what* to show (which games, which metrics, what order); the components decide *how* it looks.
+
+**Block types:**
+- `game_card` — styled card with image, name, price, game number
+- `odds_chart` — Recharts visualization of probability distributions
+- `metric_summary` — styled display of value score, ROI
+- `prize_table` — formatted table with tiers and odds (component controls what's displayed — no raw counts)
+- `comparison_table` — side-by-side game comparison
+- `text` — agent's narrative analysis (the only free-form part)
+
+**Why this pattern:**
+- Data types are known (games, prizes, metrics, comparisons) — no surprise shapes
+- Consistency matters — same game card looks the same every time
+- Solves raw data leaking structurally — components control what gets rendered
+- Simpler than code generation (Pattern 2) or hybrid (Pattern 3)
+- Recharts components can be pre-built and reused
+
+**Response format change:** API returns `{ blocks: [...] }` instead of `{ answer: "markdown string" }`. The frontend maps each block to its React component.
+
+**Also includes:**
+- Design system integration (Outfit font, color tokens, card styles from `visualization-reference.md`)
+- Single game report component for consistent game presentations
+- Multi-game comparison component with shared Recharts plots
 
 ### Phase 5: Polish and portfolio demo (deferred)
 
