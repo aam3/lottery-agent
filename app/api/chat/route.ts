@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { runAgentLoop } from "@/lib/agentLoop";
+import { writeTrace } from "@/lib/traceLogger";
 
 export async function POST(request: Request) {
   // Parse request body
@@ -56,9 +57,32 @@ export async function POST(request: Request) {
     content: msg.content,
   }));
 
+  // Extract state and question from the last user message
+  // Frontend sends messages as "[State: NJ] user question"
+  const lastContent = lastMessage.content;
+  const stateMatch = lastContent.match(/^\[State:\s*(\w+)\]\s*/);
+  const state = stateMatch ? stateMatch[1] : "unknown";
+  const question = stateMatch
+    ? lastContent.slice(stateMatch[0].length)
+    : lastContent;
+
   // Run the agent loop
+  const startTime = Date.now();
   try {
     const result = await runAgentLoop({ messages: apiMessages });
+
+    // Write trace (fire-and-forget — don't block the response)
+    const timestamp = new Date().toISOString();
+    writeTrace({
+      timestamp,
+      state,
+      question,
+      steps: result.steps,
+      answer: result.answer,
+      usage: result.usage,
+      duration_ms: Date.now() - startTime,
+    }).catch((err) => console.error("[trace] Failed to write:", err));
+
     return NextResponse.json(result);
   } catch (err) {
     console.error("[chat route] Error:", err);

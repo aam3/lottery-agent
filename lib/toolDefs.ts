@@ -6,7 +6,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "query_games",
     description:
-      "List active scratch-off games for a state. Returns game name, number, price, overall odds, and image URL. Filter by price tier, game ID, game name, or game number. Sort by price, game number, name, or overall odds. Does NOT include computed metrics — use the metric tools (get_value_metrics, get_outcome_probabilities, get_marginal_odds, get_depletion) to get analysis for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
+      "List active scratch-off games for a state. Returns game name, number, price, and image URL — identification only, no odds or metrics. Use the metric tools (get_value_metrics, get_outcome_probabilities, get_marginal_odds, get_depletion) to get analytical data for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -32,12 +32,12 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
         },
         sort_by: {
           type: "string",
-          enum: ["price_tier", "game_number", "game_name", "overall_odds"],
+          enum: ["price_tier", "game_number", "game_name"],
           description: "Column to sort results by. Default: price_tier",
         },
         limit: {
           type: "integer",
-          description: "Max games to return (1-50). Default: 25",
+          description: "Max games to return (1-200). Default: all active games.",
         },
       },
       required: ["state"],
@@ -47,7 +47,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_prizes",
     description:
-      "Get the prize distribution for a specific game: how many prizes remain at each prize value. Shows every prize tier from the top prize down to losing rows (prize_value = $0). Identify the game by game_id (from query_games) or by state + game_number.",
+      "Get the prize structure for a specific game: all prize tiers and their dollar values, from the top prize down to losing rows (prize_value = $0). This tool returns the structure only — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, and for prize availability use get_depletion. Identify the game by game_id (from query_games) or by state + game_number.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -158,7 +158,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Get the probability of winning at least a given net-profit threshold for one or more games. Thresholds: $0 (any profit), $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K. Net profit = prize minus ticket cost. Use this to compare realistic win chances across games at specific dollar levels. Requires game IDs from query_games.",
+      "Get the probability of winning at least a given net-profit threshold for one or more games. Thresholds: $0 (any profit), $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K. Net profit = prize minus ticket cost. These are probability thresholds, not prize structure — a zero at a threshold means no prizes reach that net profit level, not that prize tiers don't exist in that range. Use get_prizes to see actual prize tiers. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -200,7 +200,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_value_metrics",
     description:
-      "Get the overall value of one or more games. Returns value_score (0-100 ranking within the state), ROI, average reward per winning ticket, and average risk per losing ticket. Value score measures how favorable a game is based on its potential reward and potential risk, taking ticket price into account. Requires game IDs from query_games.",
+      "Get the overall value of one or more games. Returns value_score (0-100 ranking within the state), ROI, and the reward_raw and risk_raw components that feed into ROI and value_score. Value score is a relative ranking — it compares games against each other within the same state, not against an absolute standard. A high score means better than most other active games; a low score means worse. All scratch-off games have negative expected value, so a high value score does not mean the game is a good deal. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {

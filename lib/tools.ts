@@ -100,14 +100,15 @@ const SCHEMA_CONCEPTS: Record<string, object> = {
     definition: "Probability of winning at least a given net-profit threshold on a single ticket.",
     thresholds: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000],
     usage: "Lets users compare realistic win chances at specific dollar levels. A conservative player focuses on mo_0 (any win), a risk-tolerant player focuses on mo_500 or mo_1000.",
+    interpretation: "Flat values across thresholds mean all wins exceed the lower threshold. A zero means no prizes reach that net profit level — but prize tiers may still exist in that dollar range (e.g., a $400 prize on a $20 ticket has $380 net profit, which is above mo_100 but below mo_500). Do not infer prize structure from marginal odds — use get_prizes for that.",
   },
   risk: {
     definition: "Average net loss per losing ticket (where net value < 0).",
-    interpretation: "How much you stand to lose on a given game. Higher risk means larger average losses per losing ticket.",
+    interpretation: "Describes only the loss side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to reward, or through the combined measures ROI and value_score.",
   },
   reward: {
     definition: "Average net gain per winning ticket (where net value > 0).",
-    interpretation: "How much you stand to gain on a given game. Higher reward means larger average wins per winning ticket.",
+    interpretation: "Describes only the reward side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to risk, or through the combined measures ROI and value_score.",
   },
   roi: {
     definition: "(reward_raw - risk_raw) / price_tier. Net expected outcome per dollar spent.",
@@ -115,7 +116,7 @@ const SCHEMA_CONCEPTS: Record<string, object> = {
   },
   value_score: {
     definition: "ROI normalized to 0-100 across all active games in the same state using min-max scaling.",
-    interpretation: "The primary comparison metric. Measures how favorable a game is based on its potential reward and potential risk, taking ticket price into account. A score of 100 means the best ROI in the state, 0 means the worst.",
+    interpretation: "A relative ranking — compares games against each other within the same state, not against an absolute standard. A score of 100 means the best ROI in the state, 0 means the worst. All scratch-off games have negative expected value, so a high value score does not mean the game is a good deal. This is NOT a percentile — a score of 30 does not mean 'better than 30% of games.' It means the game's ROI is 30% of the way between the worst and best ROI in the state.",
   },
   depletion: {
     definition: "What percentage of prizes remain vs. original supply, grouped into dollar bands.",
@@ -180,7 +181,6 @@ const SORT_COLUMNS: Record<string, string> = {
   price_tier: "price_tier",
   game_number: "game_number",
   game_name: "game_name",
-  overall_odds: "overall_odds_numeric",
 };
 
 export async function query_games(params: {
@@ -193,7 +193,7 @@ export async function query_games(params: {
   limit?: number;
 }) {
   const { state, price_tier, game_id, game_name, game_number, sort_by, limit } = params;
-  const cap = Math.min(Math.max(limit ?? 25, 1), 50);
+  const cap = Math.min(Math.max(limit ?? 200, 1), 200);
   const sortCol = SORT_COLUMNS[sort_by ?? "price_tier"] ?? "price_tier";
 
   try {
@@ -209,21 +209,21 @@ export async function query_games(params: {
     if (game_id !== undefined) {
       rows = await sql`
         SELECT game_id, game_number, game_name, state, price_tier,
-               overall_odds, overall_odds_numeric, image_url, is_active
+               image_url, is_active
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true AND game_id = ${game_id}
       `;
     } else if (game_number !== undefined) {
       rows = await sql`
         SELECT game_id, game_number, game_name, state, price_tier,
-               overall_odds, overall_odds_numeric, image_url, is_active
+               image_url, is_active
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true AND game_number = ${game_number}
       `;
     } else if (game_name !== undefined && price_tier !== undefined) {
       rows = await sql`
         SELECT game_id, game_number, game_name, state, price_tier,
-               overall_odds, overall_odds_numeric, image_url, is_active
+               image_url, is_active
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true
               AND game_name = ${game_name} AND price_tier = ${price_tier}
@@ -232,25 +232,16 @@ export async function query_games(params: {
     } else if (game_name !== undefined) {
       rows = await sql`
         SELECT game_id, game_number, game_name, state, price_tier,
-               overall_odds, overall_odds_numeric, image_url, is_active
+               image_url, is_active
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true AND game_name = ${game_name}
         LIMIT ${cap}
       `;
     } else if (price_tier !== undefined) {
-      if (sortCol === "overall_odds_numeric") {
+      if (sortCol === "game_number") {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
-          FROM games
-          WHERE state = ${state.toUpperCase()} AND is_active = true AND price_tier = ${price_tier}
-          ORDER BY overall_odds_numeric DESC NULLS LAST
-          LIMIT ${cap}
-        `;
-      } else if (sortCol === "game_number") {
-        rows = await sql`
-          SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true AND price_tier = ${price_tier}
           ORDER BY game_number
@@ -259,7 +250,7 @@ export async function query_games(params: {
       } else if (sortCol === "game_name") {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true AND price_tier = ${price_tier}
           ORDER BY game_name
@@ -268,7 +259,7 @@ export async function query_games(params: {
       } else {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true AND price_tier = ${price_tier}
           ORDER BY price_tier
@@ -276,19 +267,10 @@ export async function query_games(params: {
         `;
       }
     } else {
-      if (sortCol === "overall_odds_numeric") {
+      if (sortCol === "game_number") {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
-          FROM games
-          WHERE state = ${state.toUpperCase()} AND is_active = true
-          ORDER BY overall_odds_numeric DESC NULLS LAST
-          LIMIT ${cap}
-        `;
-      } else if (sortCol === "game_number") {
-        rows = await sql`
-          SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true
           ORDER BY game_number
@@ -297,7 +279,7 @@ export async function query_games(params: {
       } else if (sortCol === "game_name") {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true
           ORDER BY game_name
@@ -306,7 +288,7 @@ export async function query_games(params: {
       } else {
         rows = await sql`
           SELECT game_id, game_number, game_name, state, price_tier,
-                 overall_odds, overall_odds_numeric, image_url, is_active
+                 image_url, is_active
           FROM games
           WHERE state = ${state.toUpperCase()} AND is_active = true
           ORDER BY price_tier
@@ -336,14 +318,14 @@ export async function search_games(params: {
     let rows;
     if (game_number) {
       rows = await sql`
-        SELECT game_id, game_number, game_name, state, price_tier, overall_odds, image_url
+        SELECT game_id, game_number, game_name, state, price_tier, image_url
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true AND game_number = ${game_number}
       `;
     } else {
       const pattern = `%${query}%`;
       rows = await sql`
-        SELECT game_id, game_number, game_name, state, price_tier, overall_odds, image_url
+        SELECT game_id, game_number, game_name, state, price_tier, image_url
         FROM games
         WHERE state = ${state.toUpperCase()} AND is_active = true AND game_name ILIKE ${pattern}
         ORDER BY game_name
@@ -368,8 +350,8 @@ export async function get_prizes(params: {
     let rows;
     if (game_id !== undefined) {
       rows = await sql`
-        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value, p.total_tickets,
-               p.prizes_remaining, p.prize_odds, p.is_free_ticket, p.scrape_date,
+        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
+               p.prize_odds, p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -378,8 +360,8 @@ export async function get_prizes(params: {
       `;
     } else if (state && game_number) {
       rows = await sql`
-        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value, p.total_tickets,
-               p.prizes_remaining, p.prize_odds, p.is_free_ticket, p.scrape_date,
+        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
+               p.prize_odds, p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -405,8 +387,6 @@ export async function get_prizes(params: {
         prize_id: r.prize_id,
         prize_label: r.prize_label,
         prize_value: r.prize_value,
-        total_tickets: r.total_tickets,
-        prizes_remaining: r.prizes_remaining,
         prize_odds: r.prize_odds,
         is_free_ticket: r.is_free_ticket,
         scrape_date: r.scrape_date,

@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# trace logs
+/traces/
+
 # session management and project docs
 /docs/
 /specs/
