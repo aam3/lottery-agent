@@ -218,6 +218,40 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     },
   },
 
+  // ─── Computation tools ──────────────────────────────────────────────────
+
+  {
+    name: "calculate_multi_ticket_odds",
+    description:
+      "Calculate combined win probability for multi-ticket purchases. Call this whenever you recommend buying more than one ticket — it gives the user the actual combined odds of their purchase. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The formula works with any probability type: p_winning_cash for any cash win, mo_50 for winning $50+, etc. — the result means 'probability that at least one ticket hits that threshold.' Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        tickets: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              probability: {
+                type: "number",
+                description:
+                  "Per-ticket probability of the outcome you're calculating for (e.g. p_winning_cash, mo_50). Must be between 0 and 1.",
+              },
+              count: {
+                type: "integer",
+                description: "Number of tickets at this probability",
+              },
+            },
+            required: ["probability", "count"],
+          },
+          description:
+            "One entry per distinct probability. For same-game tickets, one entry with count = number of tickets. For different games, one entry per game.",
+        },
+      },
+      required: ["tickets"],
+    },
+  },
+
   // ─── Reference lookup ───────────────────────────────────────────────────
 
   {

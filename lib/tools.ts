@@ -525,6 +525,43 @@ export async function get_value_metrics(params: {
   }
 }
 
+// ─── Computation tools ─────────────────────────────────────────────────────
+
+export async function calculate_multi_ticket_odds(params: {
+  tickets: Array<{ probability: number; count: number }>;
+}) {
+  const { tickets } = params;
+
+  if (!tickets || tickets.length === 0) {
+    return { error: "Provide at least one ticket entry with probability and count." };
+  }
+
+  // Validate inputs
+  for (const entry of tickets) {
+    if (typeof entry.probability !== "number" || entry.probability < 0 || entry.probability > 1) {
+      return { error: `Invalid probability: ${entry.probability}. Must be between 0 and 1.` };
+    }
+    if (!Number.isInteger(entry.count) || entry.count < 1) {
+      return { error: `Invalid count: ${entry.count}. Must be a positive integer.` };
+    }
+  }
+
+  const totalTickets = tickets.reduce((sum, t) => sum + t.count, 0);
+
+  // P(all lose) = ∏(1 − pᵢ) for each individual ticket
+  let allLoseProbability = 1;
+  for (const entry of tickets) {
+    allLoseProbability *= Math.pow(1 - entry.probability, entry.count);
+  }
+
+  return {
+    combined_probability: 1 - allLoseProbability,
+    all_lose_probability: allLoseProbability,
+    total_tickets: totalTickets,
+    tickets,
+  };
+}
+
 // ─── Dispatcher map (for Phase 2 agent loop) ────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -539,4 +576,5 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_marginal_odds,
   get_depletion,
   get_value_metrics,
+  calculate_multi_ticket_odds,
 };
