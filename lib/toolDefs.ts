@@ -47,23 +47,35 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_prizes",
     description:
-      "Get the prize structure for a specific game: all prize tiers and their dollar values, from the top prize down to losing rows (prize_value = $0). This tool returns the structure only — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, and for prize availability use get_depletion. Identify the game by game_id (from query_games) or by state + game_number.",
+      "Get the prize structure for one or more games: all prize tiers and their dollar values, from the top prize down to losing rows (prize_value = $0). This tool returns the structure only — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, and for prize availability use get_depletion. Identify games by game_id/game_ids (from query_games) or by state + game_number/game_numbers. Use game_ids or game_numbers to fetch multiple games in a single call.",
     input_schema: {
       type: "object" as const,
       properties: {
         game_id: {
           type: "integer",
-          description: "Internal game ID from query_games results",
+          description: "Single game ID from query_games results",
+        },
+        game_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description:
+            "Multiple game IDs for batch lookup. Use game_id for a single game.",
         },
         state: {
           type: "string",
           description:
-            "Two-letter state code, required if using game_number instead of game_id",
+            "Two-letter state code, required if using game_number/game_numbers instead of game_id/game_ids",
         },
         game_number: {
           type: "string",
           description:
-            "State-assigned game number (e.g. '05123'). Must be used with state.",
+            "Single state-assigned game number (e.g. '05123'). Must be used with state.",
+        },
+        game_numbers: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Multiple state-assigned game numbers for batch lookup. Must be used with state.",
         },
       },
       required: [],

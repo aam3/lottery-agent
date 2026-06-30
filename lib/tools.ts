@@ -341,14 +341,36 @@ export async function search_games(params: {
 
 export async function get_prizes(params: {
   game_id?: number;
+  game_ids?: number[];
   state?: string;
   game_number?: string;
+  game_numbers?: string[];
 }) {
-  const { game_id, state, game_number } = params;
+  const { game_id, game_ids, state, game_number, game_numbers } = params;
 
   try {
     let rows;
-    if (game_id !== undefined) {
+    if (game_ids && game_ids.length > 0) {
+      rows = await sql`
+        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
+               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               g.game_name, g.game_number, g.price_tier, g.state, g.image_url
+        FROM prizes p
+        JOIN games g ON g.game_id = p.game_id
+        WHERE p.game_id = ANY(${game_ids})
+        ORDER BY p.game_id, p.prize_value DESC NULLS LAST
+      `;
+    } else if (state && game_numbers && game_numbers.length > 0) {
+      rows = await sql`
+        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
+               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               g.game_name, g.game_number, g.price_tier, g.state, g.image_url
+        FROM prizes p
+        JOIN games g ON g.game_id = p.game_id
+        WHERE g.state = ${state.toUpperCase()} AND g.game_number = ANY(${game_numbers})
+        ORDER BY p.game_id, p.prize_value DESC NULLS LAST
+      `;
+    } else if (game_id !== undefined) {
       rows = await sql`
         SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
                p.prize_odds, p.is_free_ticket, p.scrape_date,
@@ -369,29 +391,43 @@ export async function get_prizes(params: {
         ORDER BY p.prize_value DESC NULLS LAST
       `;
     } else {
-      return { error: "Provide game_id, or both state and game_number." };
+      return { error: "Provide game_id, game_ids, or state with game_number/game_numbers." };
     }
 
     if (rows.length === 0) {
-      return { error: "No prizes found for the specified game." };
+      return { error: "No prizes found for the specified game(s)." };
     }
 
-    return {
-      game_id: rows[0].game_id,
-      game_name: rows[0].game_name,
-      game_number: rows[0].game_number,
-      price_tier: rows[0].price_tier,
-      state: rows[0].state,
-      image_url: rows[0].image_url,
-      prizes: rows.map((r: Record<string, unknown>) => ({
+    // Group rows by game_id
+    const gamesMap = new Map<number, Record<string, unknown>>();
+    for (const r of rows) {
+      const gid = r.game_id as number;
+      if (!gamesMap.has(gid)) {
+        gamesMap.set(gid, {
+          game_id: r.game_id,
+          game_name: r.game_name,
+          game_number: r.game_number,
+          price_tier: r.price_tier,
+          state: r.state,
+          image_url: r.image_url,
+          prizes: [],
+        });
+      }
+      (gamesMap.get(gid)!.prizes as Record<string, unknown>[]).push({
         prize_id: r.prize_id,
         prize_label: r.prize_label,
         prize_value: r.prize_value,
         prize_odds: r.prize_odds,
         is_free_ticket: r.is_free_ticket,
         scrape_date: r.scrape_date,
-      })),
-    };
+      });
+    }
+
+    const games = Array.from(gamesMap.values());
+    if (games.length === 1) {
+      return games[0];
+    }
+    return { games, count: games.length };
   } catch (err) {
     return { error: `Database error: ${(err as Error).message}` };
   }

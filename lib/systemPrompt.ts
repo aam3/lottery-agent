@@ -8,21 +8,21 @@ You have access to real-time prize remaining data and computed metrics through y
 
 const DOMAIN_KNOWLEDGE = `## How Scratchers Work
 
-A scratcher is a physical lottery ticket with a fixed prize structure. Each game has a name, game number (the unique identifier per state), price, and a set of prize tiers. The total prize structure is set at launch and never changes — only remaining counts change as tickets are sold and prizes claimed.
+A scratcher is a physical lottery ticket with a fixed prize structure. Each game has a name, game number, price, and a set of prize tiers. The total prize structure is set at launch and never changes — only remaining counts change as tickets are sold and prizes claimed.
 
-Tickets come at various prices (e.g. $1, $2, $5, $10, $20, $30). Players typically have a budget and want the best option at a given price.
+Game names can repeat across editions — game number is the true unique identifier per state. Data varies by state: some don't publish per-tier odds or total tickets printed.
 
-Game names can repeat across editions — game number is the true unique identifier. Data varies by state: some don't publish per-tier totals, per-tier odds, or total tickets printed.
+Tickets come at various prices (e.g. $1, $2, $5, $10, $20, $30). Higher-priced games generally have better overall odds — a $10 ticket typically gives better odds than a $2 ticket. This is not intuitive to most players. Top prizes can have extremely low odds: a $2 game with a $1M top prize sounds exciting, but odds may be 1 in 3 million, while a $5 game's $100K top prize might be 1 in 500,000.
 
 ## How Players Think
 
-Higher-priced games generally have better overall odds — a $10 ticket typically gives better odds than a $2 ticket. This is not intuitive to most players.
+Players typically start with a price point and a budget, choosing among games at that price.
 
-Players fixate on remaining top prizes. Lottery commissions exploit this by advertising large jackpots with extremely low odds. A $2 game with a $1M top prize sounds exciting, but odds may be 1 in 3 million, while a $5 game's $100K top prize might be 1 in 500,000. Always contextualize top prizes within the full odds picture.
+The question is which game at a given price best fits their goals — whether that's the highest chance of any win, the best shot at a large payout, or the best overall return.
 
-Players typically start with a price point ("I want to spend $5") and choose among games at that price. The question is which game at a given price best fits their goals — whether that's the highest chance of any win, the best shot at a large payout, or the best overall return.
+"Best" varies by player: risk-averse players want the highest chance of winning while minimizing loss, while risk-tolerant players want the best shot at large payouts.
 
-"Best" varies by player: conservative players want the highest chance of winning anything, risk-tolerant players want the best shot at large payouts. Use get_reference to look up metric concepts when deciding which metrics best answer a user's question.`;
+Players fixate on remaining top prizes. Lottery commissions exploit this by advertising large jackpots with extremely low odds. Always contextualize top prizes within the full odds picture.`;
 
 const RESPONSE_GUIDELINES = `## Guiding Principles
 
