@@ -97,8 +97,9 @@ const SCHEMA_CONCEPTS: Record<string, object> = {
     },
   },
   marginal_odds: {
-    definition: "Probability of winning at least a given net-profit threshold on a single ticket.",
-    thresholds: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000],
+    definition: "Probability of winning at least a given net-profit threshold on a single ticket. Computed on-the-fly from prize tier data (total_tickets per tier / tickets_printed).",
+    default_thresholds: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000],
+    threshold_parameter: "Omit for the default ladder (required for comparisons). Pass a single number for a specific target. Custom arrays are not accepted.",
     usage: "Lets users compare realistic win chances at specific dollar levels. A conservative player focuses on mo_0 (any win), a risk-tolerant player focuses on mo_500 or mo_1000.",
     interpretation: "Flat values across thresholds mean all wins exceed the lower threshold. A zero means no prizes reach that net profit level — but prize tiers may still exist in that dollar range (e.g., a $400 prize on a $20 ticket has $380 net profit, which is above mo_100 but below mo_500). Do not infer prize structure from marginal odds — use get_prizes for that.",
   },
@@ -353,7 +354,7 @@ export async function get_prizes(params: {
     if (game_ids && game_ids.length > 0) {
       rows = await sql`
         SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -363,7 +364,7 @@ export async function get_prizes(params: {
     } else if (state && game_numbers && game_numbers.length > 0) {
       rows = await sql`
         SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -373,7 +374,7 @@ export async function get_prizes(params: {
     } else if (game_id !== undefined) {
       rows = await sql`
         SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -383,7 +384,7 @@ export async function get_prizes(params: {
     } else if (state && game_number) {
       rows = await sql`
         SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.prize_odds, p.is_free_ticket, p.scrape_date,
+               p.is_free_ticket, p.scrape_date,
                g.game_name, g.game_number, g.price_tier, g.state, g.image_url
         FROM prizes p
         JOIN games g ON g.game_id = p.game_id
@@ -417,7 +418,6 @@ export async function get_prizes(params: {
         prize_id: r.prize_id,
         prize_label: r.prize_label,
         prize_value: r.prize_value,
-        prize_odds: r.prize_odds,
         is_free_ticket: r.is_free_ticket,
         scrape_date: r.scrape_date,
       });
@@ -469,6 +469,8 @@ export async function get_prize_snapshots(params: {
 
 // ─── Metric tools ───────────────────────────────────────────────────────────
 
+const DEFAULT_MARGINAL_THRESHOLDS = [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
+
 function normalizeIds(params: { game_id?: number; game_ids?: number[] }): number[] | null {
   const ids = params.game_ids ?? (params.game_id ? [params.game_id] : []);
   return ids.length > 0 ? ids : null;
@@ -498,21 +500,82 @@ export async function get_outcome_probabilities(params: {
 export async function get_marginal_odds(params: {
   game_id?: number;
   game_ids?: number[];
+  threshold?: number;
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
 
+  const thresholds = params.threshold !== undefined
+    ? [params.threshold]
+    : DEFAULT_MARGINAL_THRESHOLDS;
+
   try {
     const rows = await sql`
-      SELECT gm.game_id, g.game_name, g.game_number, g.price_tier, g.state,
-             gm.mo_0, gm.mo_10, gm.mo_50, gm.mo_100, gm.mo_500,
-             gm.mo_1000, gm.mo_5000, gm.mo_10000, gm.mo_50000, gm.mo_100000,
-             gm.computed_at
-      FROM game_metrics gm
-      JOIN games g ON g.game_id = gm.game_id
-      WHERE gm.game_id = ANY(${ids})
+      SELECT p.prize_value, p.total_tickets,
+             g.game_id, g.game_name, g.game_number, g.price_tier, g.state,
+             g.tickets_printed
+      FROM prizes p
+      JOIN games g ON g.game_id = p.game_id
+      WHERE p.game_id = ANY(${ids})
+      ORDER BY p.game_id, p.prize_value DESC NULLS LAST
     `;
-    return { metrics: rows };
+
+    // Group rows by game
+    const gamesMap = new Map<number, {
+      game_id: number; game_name: string; game_number: string;
+      price_tier: number; state: string; tickets_printed: number | null;
+      tiers: Array<{ prize_value: number | null; total_tickets: number | null }>;
+    }>();
+
+    for (const r of rows) {
+      const gid = r.game_id as number;
+      if (!gamesMap.has(gid)) {
+        gamesMap.set(gid, {
+          game_id: gid,
+          game_name: r.game_name as string,
+          game_number: r.game_number as string,
+          price_tier: r.price_tier as number,
+          state: r.state as string,
+          tickets_printed: r.tickets_printed as number | null,
+          tiers: [],
+        });
+      }
+      gamesMap.get(gid)!.tiers.push({
+        prize_value: r.prize_value as number | null,
+        total_tickets: r.total_tickets as number | null,
+      });
+    }
+
+    const metrics = Array.from(gamesMap.values()).map((game) => {
+      if (!game.tickets_printed) {
+        return {
+          game_id: game.game_id, game_name: game.game_name,
+          game_number: game.game_number, price_tier: game.price_tier,
+          state: game.state,
+          error: "tickets_printed not available for this game.",
+        };
+      }
+
+      const marginal_odds: Record<string, number> = {};
+      for (const t of thresholds) {
+        const qualifying = game.tiers
+          .filter((tier) =>
+            tier.prize_value !== null &&
+            tier.total_tickets !== null &&
+            (tier.prize_value - game.price_tier) >= t
+          )
+          .reduce((sum, tier) => sum + (tier.total_tickets as number), 0);
+        marginal_odds[`mo_${t}`] = qualifying / game.tickets_printed;
+      }
+
+      return {
+        game_id: game.game_id, game_name: game.game_name,
+        game_number: game.game_number, price_tier: game.price_tier,
+        state: game.state, marginal_odds, thresholds_used: thresholds,
+      };
+    });
+
+    return { metrics };
   } catch (err) {
     return { error: `Database error: ${(err as Error).message}` };
   }
@@ -556,6 +619,80 @@ export async function get_value_metrics(params: {
       ORDER BY gm.value_score DESC NULLS LAST
     `;
     return { metrics: rows };
+  } catch (err) {
+    return { error: `Database error: ${(err as Error).message}` };
+  }
+}
+
+export async function get_top_prizes(params: {
+  game_id?: number;
+  game_ids?: number[];
+}) {
+  const ids = normalizeIds(params);
+  if (!ids) return { error: "Provide game_id or game_ids." };
+
+  try {
+    const rows = await sql`
+      SELECT p.prize_value, p.total_tickets, p.prizes_remaining, p.prize_label,
+             g.game_id, g.game_name, g.game_number, g.price_tier, g.state, g.image_url
+      FROM prizes p
+      JOIN games g ON g.game_id = p.game_id
+      WHERE p.game_id = ANY(${ids})
+        AND p.prize_value IS NOT NULL
+        AND p.total_tickets IS NOT NULL
+      ORDER BY p.game_id, p.prize_value DESC NULLS LAST
+    `;
+
+    // Group all tiers by game, compute top prize probability
+    const gamesMap = new Map<number, {
+      game_id: number; game_name: string; game_number: string;
+      price_tier: number; state: string; image_url: string | null;
+      top_prize_value: number; top_prize_label: string;
+      top_prize_tickets: number; top_prizes_remaining: number | null;
+      total_tickets_sum: number;
+    }>();
+
+    for (const r of rows) {
+      const gid = r.game_id as number;
+      const tierTickets = r.total_tickets as number;
+
+      if (!gamesMap.has(gid)) {
+        // First row per game is the top prize (ORDER BY prize_value DESC)
+        gamesMap.set(gid, {
+          game_id: gid,
+          game_name: r.game_name as string,
+          game_number: r.game_number as string,
+          price_tier: r.price_tier as number,
+          state: r.state as string,
+          image_url: r.image_url as string | null,
+          top_prize_value: r.prize_value as number,
+          top_prize_label: r.prize_label as string,
+          top_prize_tickets: tierTickets,
+          top_prizes_remaining: r.prizes_remaining as number | null,
+          total_tickets_sum: tierTickets,
+        });
+      } else {
+        gamesMap.get(gid)!.total_tickets_sum += tierTickets;
+      }
+    }
+
+    const metrics = Array.from(gamesMap.values()).map((game) => {
+      const probability = game.total_tickets_sum > 0
+        ? game.top_prize_tickets / game.total_tickets_sum
+        : null;
+
+      return {
+        game_id: game.game_id, game_name: game.game_name,
+        game_number: game.game_number, price_tier: game.price_tier,
+        state: game.state, image_url: game.image_url,
+        top_prize_value: game.top_prize_value,
+        top_prize_label: game.top_prize_label,
+        top_prize_probability: probability,
+        top_prizes_remaining: game.top_prizes_remaining,
+      };
+    });
+
+    return { metrics };
   } catch (err) {
     return { error: `Database error: ${(err as Error).message}` };
   }
@@ -612,5 +749,6 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_marginal_odds,
   get_depletion,
   get_value_metrics,
+  get_top_prizes,
   calculate_multi_ticket_odds,
 };

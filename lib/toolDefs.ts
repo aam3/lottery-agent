@@ -47,7 +47,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_prizes",
     description:
-      "Get the prize structure for one or more games: all prize tiers and their dollar values, from the top prize down to losing rows (prize_value = $0). This tool returns the structure only — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, and for prize availability use get_depletion. Identify games by game_id/game_ids (from query_games) or by state + game_number/game_numbers. Use game_ids or game_numbers to fetch multiple games in a single call.",
+      "Get the prize structure for one or more games: all prize tiers with labels and dollar values, from the top prize down to losing rows (prize_value = $0). Does not include odds or probabilities — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, for top prize odds use get_top_prizes, and for prize availability use get_depletion. Identify games by game_id/game_ids (from query_games) or by state + game_number/game_numbers. Use game_ids or game_numbers to fetch multiple games in a single call.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -170,7 +170,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Get the probability of winning at least a given net-profit threshold for one or more games. Thresholds: $0 (any profit), $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K. Net profit = prize minus ticket cost. These are probability thresholds, not prize structure — a zero at a threshold means no prizes reach that net profit level, not that prize tiers don't exist in that range. Use get_prizes to see actual prize tiers. Requires game IDs from query_games.",
+      "Compute the probability of winning at least a given net-profit threshold for one or more games, calculated from live prize tier data. Net profit = prize value minus ticket cost. A zero at a threshold means no prizes reach that net profit level — use get_prizes to see actual prize tiers.\n\nThreshold behavior:\n- OMIT threshold → computes odds at the standard ladder: $0, $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K. Always omit for comparisons — this guarantees all games are evaluated at identical thresholds.\n- SINGLE NUMBER → computes odds of winning at least that net-profit amount (e.g. threshold: 1000 for 'chance of profiting $1,000+').\n\nDo NOT pass a custom array of thresholds. For ladder views and game comparisons, always use the default by omitting threshold. Pass all game IDs in a single call so the same threshold applies to every game — comparability is guaranteed by the tool. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -181,7 +181,11 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
         game_ids: {
           type: "array",
           items: { type: "integer" },
-          description: "Multiple game IDs for comparison",
+          description: "Multiple game IDs for comparison. Pass all games in one call to ensure same thresholds.",
+        },
+        threshold: {
+          type: "number",
+          description: "Single net-profit dollar amount to check (e.g. 1000). Omit for the standard ladder of all default thresholds — always omit when comparing games.",
         },
       },
       required: [],
@@ -213,6 +217,27 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     name: "get_value_metrics",
     description:
       "Get the overall value of one or more games. Returns value_score (0-100 ranking within the state), ROI, and the reward_raw and risk_raw components that feed into ROI and value_score. Value score is a relative ranking — it compares games against each other within the same state, not against an absolute standard. A high score means better than most other active games; a low score means worse. All scratch-off games have negative expected value, so a high value score does not mean the game is a good deal. Requires game IDs from query_games.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        game_id: {
+          type: "integer",
+          description: "Single game ID",
+        },
+        game_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description: "Multiple game IDs for comparison",
+        },
+      },
+      required: [],
+    },
+  },
+
+  {
+    name: "get_top_prizes",
+    description:
+      "Get the top prize (highest prize_value tier) for one or more games, with the computed probability of winning it. Use this when the user asks about top prizes, jackpots, or the biggest payout — it returns the top prize value, its probability, and how many top prizes remain. Probability is computed from prize tier data. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
