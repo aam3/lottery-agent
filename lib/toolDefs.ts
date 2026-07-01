@@ -47,38 +47,29 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_prizes",
     description:
-      "Get the prize structure for one or more games: all prize tiers with labels and dollar values, from the top prize down to losing rows (prize_value = $0). Does not include odds or probabilities — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, for top prize odds use get_top_prizes, and for prize availability use get_depletion. Identify games by game_id/game_ids (from query_games) or by state + game_number/game_numbers. Use game_ids or game_numbers to fetch multiple games in a single call.",
+      "Get the prize structure for one or more games: all prize tiers with labels and dollar values, from the top prize down to losing rows (prize_value = $0). Does not include odds or probabilities — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, for top prize odds use get_top_prizes, and for prize availability use get_depletion. Identify games by game_ids (from query_games) or by state + game_numbers.",
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID from query_games results",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
           description:
-            "Multiple game IDs for batch lookup. Use game_id for a single game.",
+            "Game IDs from query_games results. Single game: [42]. Multiple: [42, 43].",
         },
         state: {
           type: "string",
           description:
-            "Two-letter state code, required if using game_number/game_numbers instead of game_id/game_ids",
-        },
-        game_number: {
-          type: "string",
-          description:
-            "Single state-assigned game number (e.g. '05123'). Must be used with state.",
+            "Two-letter state code, required if using game_numbers instead of game_ids",
         },
         game_numbers: {
           type: "array",
           items: { type: "string" },
           description:
-            "Multiple state-assigned game numbers for batch lookup. Must be used with state.",
+            "State-assigned game numbers (e.g. ['05123']). Must be used with state. Use game_ids when possible.",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -152,18 +143,14 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
           description:
-            "Multiple game IDs for comparison. Use game_id for a single game.",
+            "Game IDs from query_games. Single game: [42]. Multiple: [42, 43].",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -174,21 +161,17 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
-          description: "Multiple game IDs for comparison. Pass all games in one call to ensure same thresholds.",
+          description: "Game IDs from query_games. Pass all games in one call to ensure same thresholds.",
         },
         threshold: {
           type: "number",
           description: "Single net-profit dollar amount to check (e.g. 1000). Omit for the standard ladder of all default thresholds — always omit when comparing games.",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -199,17 +182,13 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
-          description: "Multiple game IDs for comparison",
+          description: "Game IDs from query_games. Single game: [42]. Multiple: [42, 43].",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -220,17 +199,13 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
-          description: "Multiple game IDs for comparison",
+          description: "Game IDs from query_games. Single game: [42]. Multiple: [42, 43].",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -241,17 +216,13 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        game_id: {
-          type: "integer",
-          description: "Single game ID",
-        },
         game_ids: {
           type: "array",
           items: { type: "integer" },
-          description: "Multiple game IDs for comparison",
+          description: "Game IDs from query_games. Single game: [42]. Multiple: [42, 43].",
         },
       },
-      required: [],
+      required: ["game_ids"],
     },
   },
 
@@ -260,10 +231,15 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "calculate_multi_ticket_odds",
     description:
-      "Calculate combined win probability for multi-ticket purchases. Call this whenever you recommend buying more than one ticket — it gives the user the actual combined odds of their purchase. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The formula works with any probability type: p_winning_cash for any cash win, mo_50 for winning $50+, etc. — the result means 'probability that at least one ticket hits that threshold.' Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
+      "Calculate combined win probability for multi-ticket purchases within a budget. Call this whenever you recommend buying more than one ticket — it gives the user the actual combined odds of their purchase. Validates that the total ticket cost does not exceed the budget. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The formula works with any probability type: p_winning_cash for any cash win, mo_50 for winning $50+, etc. — the result means 'probability that at least one ticket hits that threshold.' Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
     input_schema: {
       type: "object" as const,
       properties: {
+        budget: {
+          type: "number",
+          description:
+            "Total dollars the user wants to spend. The tool validates that the ticket selections don't exceed this amount.",
+        },
         tickets: {
           type: "array",
           items: {
@@ -278,14 +254,19 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                 type: "integer",
                 description: "Number of tickets at this probability",
               },
+              price_per_ticket: {
+                type: "number",
+                description:
+                  "Ticket price in dollars (price_tier from query_games).",
+              },
             },
-            required: ["probability", "count"],
+            required: ["probability", "count", "price_per_ticket"],
           },
           description:
             "One entry per distinct probability. For same-game tickets, one entry with count = number of tickets. For different games, one entry per game.",
         },
       },
-      required: ["tickets"],
+      required: ["budget", "tickets"],
     },
   },
 

@@ -341,13 +341,11 @@ export async function search_games(params: {
 }
 
 export async function get_prizes(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
   state?: string;
-  game_number?: string;
   game_numbers?: string[];
 }) {
-  const { game_id, game_ids, state, game_number, game_numbers } = params;
+  const { game_ids, state, game_numbers } = params;
 
   try {
     let rows;
@@ -371,28 +369,8 @@ export async function get_prizes(params: {
         WHERE g.state = ${state.toUpperCase()} AND g.game_number = ANY(${game_numbers})
         ORDER BY p.game_id, p.prize_value DESC NULLS LAST
       `;
-    } else if (game_id !== undefined) {
-      rows = await sql`
-        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.is_free_ticket, p.scrape_date,
-               g.game_name, g.game_number, g.price_tier, g.state, g.image_url
-        FROM prizes p
-        JOIN games g ON g.game_id = p.game_id
-        WHERE p.game_id = ${game_id}
-        ORDER BY p.prize_value DESC NULLS LAST
-      `;
-    } else if (state && game_number) {
-      rows = await sql`
-        SELECT p.prize_id, p.game_id, p.prize_label, p.prize_value,
-               p.is_free_ticket, p.scrape_date,
-               g.game_name, g.game_number, g.price_tier, g.state, g.image_url
-        FROM prizes p
-        JOIN games g ON g.game_id = p.game_id
-        WHERE g.state = ${state.toUpperCase()} AND g.game_number = ${game_number}
-        ORDER BY p.prize_value DESC NULLS LAST
-      `;
     } else {
-      return { error: "Provide game_id, game_ids, or state with game_number/game_numbers." };
+      return { error: "Provide game_ids or state with game_numbers." };
     }
 
     if (rows.length === 0) {
@@ -471,14 +449,12 @@ export async function get_prize_snapshots(params: {
 
 const DEFAULT_MARGINAL_THRESHOLDS = [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
 
-function normalizeIds(params: { game_id?: number; game_ids?: number[] }): number[] | null {
-  const ids = params.game_ids ?? (params.game_id ? [params.game_id] : []);
-  return ids.length > 0 ? ids : null;
+function normalizeIds(params: { game_ids: number[] }): number[] | null {
+  return params.game_ids.length > 0 ? params.game_ids : null;
 }
 
 export async function get_outcome_probabilities(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
@@ -498,8 +474,7 @@ export async function get_outcome_probabilities(params: {
 }
 
 export async function get_marginal_odds(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
   threshold?: number;
 }) {
   const ids = normalizeIds(params);
@@ -582,8 +557,7 @@ export async function get_marginal_odds(params: {
 }
 
 export async function get_depletion(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
@@ -603,8 +577,7 @@ export async function get_depletion(params: {
 }
 
 export async function get_value_metrics(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
@@ -625,8 +598,7 @@ export async function get_value_metrics(params: {
 }
 
 export async function get_top_prizes(params: {
-  game_id?: number;
-  game_ids?: number[];
+  game_ids: number[];
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
@@ -701,12 +673,17 @@ export async function get_top_prizes(params: {
 // ─── Computation tools ─────────────────────────────────────────────────────
 
 export async function calculate_multi_ticket_odds(params: {
-  tickets: Array<{ probability: number; count: number }>;
+  budget: number;
+  tickets: Array<{ probability: number; count: number; price_per_ticket: number }>;
 }) {
-  const { tickets } = params;
+  const { budget, tickets } = params;
 
   if (!tickets || tickets.length === 0) {
-    return { error: "Provide at least one ticket entry with probability and count." };
+    return { error: "Provide at least one ticket entry with probability, count, and price_per_ticket." };
+  }
+
+  if (typeof budget !== "number" || budget <= 0) {
+    return { error: `Invalid budget: ${budget}. Must be a positive number.` };
   }
 
   // Validate inputs
@@ -717,6 +694,17 @@ export async function calculate_multi_ticket_odds(params: {
     if (!Number.isInteger(entry.count) || entry.count < 1) {
       return { error: `Invalid count: ${entry.count}. Must be a positive integer.` };
     }
+    if (typeof entry.price_per_ticket !== "number" || entry.price_per_ticket <= 0) {
+      return { error: `Invalid price_per_ticket: ${entry.price_per_ticket}. Must be a positive number.` };
+    }
+  }
+
+  // Validate total cost does not exceed budget
+  const totalCost = tickets.reduce((sum, t) => sum + t.count * t.price_per_ticket, 0);
+  if (totalCost > budget) {
+    return {
+      error: `Total ticket cost ($${totalCost}) exceeds budget ($${budget}). Reduce ticket counts or choose cheaper games.`,
+    };
   }
 
   const totalTickets = tickets.reduce((sum, t) => sum + t.count, 0);
@@ -731,6 +719,9 @@ export async function calculate_multi_ticket_odds(params: {
     combined_probability: 1 - allLoseProbability,
     all_lose_probability: allLoseProbability,
     total_tickets: totalTickets,
+    total_cost: totalCost,
+    budget,
+    budget_remaining: budget - totalCost,
     tickets,
   };
 }
