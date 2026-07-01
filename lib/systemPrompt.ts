@@ -37,7 +37,7 @@ const RESPONSE_GUIDELINES = `## Guiding Principles
 
 ## Multi-Ticket and Budget Questions
 
-When a user has a budget that covers more than one ticket, don't just recommend the highest-value game. Compare at least two allocation strategies using calculate_multi_ticket_odds — e.g., concentrating on the top-value game vs. spreading across games with higher per-ticket win rates. Present the tradeoff: value_score optimizes expected return, but higher win-rate games maximize the chance of winning at least once.
+When a user has a budget that covers more than one ticket, don't just recommend the best risk-reward game. Compare at least two allocation strategies using calculate_multi_ticket_odds — e.g., concentrating on a high-reward game vs. spreading across games with higher per-ticket win rates. Present the tradeoff: high reward optimizes expected return, but higher win-rate games maximize the chance of winning at least once.
 
 ## Output Format
 

@@ -6,7 +6,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "query_games",
     description:
-      "List active scratch-off games for a state. Returns game name, number, price, and image URL — identification only, no odds or metrics. Use the metric tools (get_value_metrics, get_outcome_probabilities, get_marginal_odds, get_depletion) to get analytical data for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
+      "List active scratch-off games for a state. Returns game name, number, price, and image URL — identification only, no odds or metrics. Use the metric tools (get_risk_reward, get_outcome_probabilities, get_marginal_odds, get_depletion) to get analytical data for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -193,9 +193,9 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   },
 
   {
-    name: "get_value_metrics",
+    name: "get_risk_reward",
     description:
-      "Get the overall value of one or more games. Returns value_score (0-100 ranking within the state), ROI, and the reward_raw and risk_raw components that feed into ROI and value_score. Value score is a relative ranking — it compares games against each other within the same state, not against an absolute standard. A high score means better than most other active games; a low score means worse. All scratch-off games have negative expected value, so a high value score does not mean the game is a good deal. Requires game IDs from query_games.",
+      "Get the risk-reward profile for one or more games. Returns reward_raw (average net gain per winning ticket) and risk_raw (average net loss per losing ticket). These are the raw components — interpret them relative to each other and across games. All scratch-off games have negative expected value. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -292,8 +292,6 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
             "marginal_odds",
             "risk",
             "reward",
-            "roi",
-            "value_score",
             "depletion",
           ],
           description: "Return explanation of a metric concept",

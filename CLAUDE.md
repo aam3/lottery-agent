@@ -111,6 +111,11 @@ If unsure whether a reference exists, list the contents of `.claude/_reference/`
 - Don't include pipeline/data-processing concerns in agent tool descriptions — only reference fields the agent works with
 - Agent tool functions should only pull stored values — computation belongs in the data pipeline
 - Metric tools should require game IDs — no state-level queries that could dump full datasets
+- Domain knowledge defines terms and concepts, not data characteristics or correlations — let data speak through tools
+- When the agent ignores soft guidance, promote it to hard rules rather than rewording
+- Remove tool output fields the agent can't interpret correctly rather than prompting around them
+- Make a metric's relevance-driving context into a required parameter of its tool
+- When JSON Schema can't express "one of A or B required," consolidate to a single required param
 
 ### Writing Style
 

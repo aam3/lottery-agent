@@ -57,8 +57,6 @@ const SCHEMA_TABLES: Record<string, object> = {
       "mo_10 through mo_100000": "Marginal odds at thresholds: $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K",
       reward_raw: "Average profit per winning ticket (where prize > cost)",
       risk_raw: "Average loss per losing ticket (where prize < cost)",
-      roi: "Return on investment: (reward_raw - risk_raw) / price_tier. Negative means net loss.",
-      value_score: "ROI normalized 0-100 via min-max across all active games in same state",
       depletion_high: "Percentage of $500+ prizes remaining vs. original. NULL if no prizes in band.",
       depletion_mid: "Percentage of $50-$499 prizes remaining vs. original",
       depletion_low: "Percentage of under-$50 prizes remaining vs. original",
@@ -105,19 +103,11 @@ const SCHEMA_CONCEPTS: Record<string, object> = {
   },
   risk: {
     definition: "Average net loss per losing ticket (where net value < 0).",
-    interpretation: "Describes only the loss side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to reward, or through the combined measures ROI and value_score.",
+    interpretation: "Describes only the loss side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to reward.",
   },
   reward: {
     definition: "Average net gain per winning ticket (where net value > 0).",
-    interpretation: "Describes only the reward side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to risk, or through the combined measures ROI and value_score.",
-  },
-  roi: {
-    definition: "(reward_raw - risk_raw) / price_tier. Net expected outcome per dollar spent.",
-    interpretation: "Negative means net loss (which is typical for lottery games). Expresses how much of each dollar spent is expected back in prizes.",
-  },
-  value_score: {
-    definition: "ROI normalized to 0-100 across all active games in the same state using min-max scaling.",
-    interpretation: "A relative ranking — compares games against each other within the same state, not against an absolute standard. A score of 100 means the best ROI in the state, 0 means the worst. All scratch-off games have negative expected value, so a high value score does not mean the game is a good deal. This is NOT a percentile — a score of 30 does not mean 'better than 30% of games.' It means the game's ROI is 30% of the way between the worst and best ROI in the state.",
+    interpretation: "Describes only the reward side of the prize distribution. Should not be presented on its own — it only tells half the story. Use relative to risk.",
   },
   depletion: {
     definition: "What percentage of prizes remain vs. original supply, grouped into dollar bands.",
@@ -576,7 +566,7 @@ export async function get_depletion(params: {
   }
 }
 
-export async function get_value_metrics(params: {
+export async function get_risk_reward(params: {
   game_ids: number[];
 }) {
   const ids = normalizeIds(params);
@@ -585,11 +575,11 @@ export async function get_value_metrics(params: {
   try {
     const rows = await sql`
       SELECT gm.game_id, g.game_name, g.game_number, g.price_tier, g.state, g.image_url,
-             gm.value_score, gm.roi, gm.reward_raw, gm.risk_raw, gm.computed_at
+             gm.reward_raw, gm.risk_raw, gm.computed_at
       FROM game_metrics gm
       JOIN games g ON g.game_id = gm.game_id
       WHERE gm.game_id = ANY(${ids})
-      ORDER BY gm.value_score DESC NULLS LAST
+      ORDER BY gm.reward_raw DESC NULLS LAST
     `;
     return { metrics: rows };
   } catch (err) {
@@ -739,7 +729,7 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_outcome_probabilities,
   get_marginal_odds,
   get_depletion,
-  get_value_metrics,
+  get_risk_reward,
   get_top_prizes,
   calculate_multi_ticket_odds,
 };
