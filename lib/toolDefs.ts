@@ -6,7 +6,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "query_games",
     description:
-      "List active scratch-off games for a state. Returns game name, number, price, and image URL — identification only, no odds or metrics. Use the metric tools (get_risk_reward, get_outcome_probabilities, get_marginal_odds, get_depletion) to get analytical data for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
+      "List active scratch-off games for a state. Returns game name, number, price, and image URL — identification only, no odds or metrics. Use metric tools to get analytical data for specific games. If the user gives a game name and you're not sure of the exact string, use search_games first to find matches.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -47,7 +47,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_prizes",
     description:
-      "Get the prize structure for one or more games: all prize tiers with labels and dollar values, from the top prize down to losing rows (prize_value = $0). Does not include odds or probabilities — for win/loss probabilities use get_outcome_probabilities, for odds at specific dollar thresholds use get_marginal_odds, for top prize odds use get_top_prizes, and for prize availability use get_depletion. Identify games by game_ids (from query_games) or by state + game_numbers.",
+      "The full prize structure for one or more games: all prize tiers with labels and dollar values, from the top prize down to losing rows (prize_value = $0). Does not include odds or probabilities — use metric tools for analytical data. Identify games by game_ids (from query_games) or by state + game_numbers.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -139,7 +139,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_outcome_probabilities",
     description:
-      "Get the probability of losing, breaking even, or winning cash for one or more games. These three probabilities (p_losing, p_breaking_even, p_winning_cash) sum to 1.0. Breaking even includes free tickets and any prize value equal to the ticket cost. This is prize-value agnostic — it tells you the overall chance of each outcome, not the chance of winning a specific amount. Use get_marginal_odds for threshold-specific probabilities. Prize tiers with NULL prize_value are excluded so probabilities sum to 1.0. Requires game IDs from query_games.",
+      "Overall probability of losing, breaking even, or winning any cash above $0 for one or more games. Prize-value agnostic — no specific prize goal needed. Use when the user wants general win/loss odds without a dollar target. Does not tell you the chance of winning a specific amount — use get_marginal_odds for that. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -157,7 +157,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Compute the probability of winning at least a given net-profit threshold for one or more games, calculated from live prize tier data. Net profit = prize value minus ticket cost. A zero means no prizes reach that net profit level — use get_prizes to see actual prize tiers.\n\nthreshold is the net-profit dollar amount to check (e.g. 500 for 'chance of profiting $500+'). A \"large prize\" is any prize with net profit >= $500 — when a user asks about \"big wins,\" \"large prizes,\" or \"going for something bigger,\" use threshold 500. Pass all game IDs in a single call so the same threshold applies to every game — comparability is guaranteed by the tool. Requires game IDs from query_games.",
+      "Probability of winning at least a specific dollar amount for one or more games. Goal-dependent — requires a dollar target from the user. Use when the user cares about reaching a specific prize level, or wants a detailed view into the prize remaining distribution. A \"large prize\" means net profit >= $500 — when the user says \"big win\" or \"large prize\" without a specific number, use threshold 500. Does not measure general win/loss odds (use get_outcome_probabilities) or the top prize specifically (use get_top_prizes). Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -178,7 +178,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_depletion",
     description:
-      "Get prize depletion bands for one or more games: what percentage of prizes remain vs. original supply in three dollar bands (high: $500+, mid: $50-499, low: under $50). NULL when no prizes exist in a given band. Requires game IDs from query_games.",
+      "How much of a game's prize pool has been claimed, in three dollar bands (high: $500+, mid: $50-499, low: under $50). Supplementary context, not a decision driver — probabilities should always guide recommendations, but depletion shows whether a game's prizes are well-stocked or picked over. Particularly relevant when the user cares about large or top prizes, since older, more depleted games have fewer remaining. NULL when no prizes exist in a given band. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -195,7 +195,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_risk_reward",
     description:
-      "Get the risk-reward profile for one or more games. Returns reward_raw (average net gain per winning ticket) and risk_raw (average net loss per losing ticket). These are the raw components — interpret them relative to each other and across games. All scratch-off games have negative expected value. Requires game IDs from query_games.",
+      "How much a player stands to gain per win vs. lose per loss on a game — the risk-reward profile. Also returns ROI: net expected outcome per dollar spent, which allows comparison across price points. Meaningful for any game, no user goal required. Use when the user wants to know which game offers the best overall return for the money. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -212,7 +212,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_top_prizes",
     description:
-      "Get the top prize (highest prize_value tier) for one or more games, with the computed probability of winning it. Use this when the user asks about top prizes, jackpots, or the biggest payout — it returns the top prize value, its probability, and how many top prizes remain. Probability is computed from prize tier data. Requires game IDs from query_games.",
+      "The top prize (highest prize tier) for one or more games and the probability of winning it. Goal-dependent — only relevant when the user is asking about top prizes, jackpots, or the biggest possible payout. Does not measure the chance of winning above a general dollar threshold — use get_marginal_odds for that. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -231,7 +231,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "calculate_multi_ticket_odds",
     description:
-      "Calculate combined win probability for multi-ticket purchases within a budget. Call this whenever you recommend buying more than one ticket — it gives the user the actual combined odds of their purchase. Validates that the total ticket cost does not exceed the budget. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The formula works with any probability type: p_winning_cash for any cash win, mo_50 for winning $50+, etc. — the result means 'probability that at least one ticket hits that threshold.' Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
+      "Combined win probability for multi-ticket purchases within a budget. Goal-dependent — requires a budget the user has specified. Use to evaluate whether buying multiple tickets is better than a single more expensive one. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The result means \"probability that at least one ticket hits that threshold.\" Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -270,34 +270,4 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     },
   },
 
-  // ─── Reference lookup ───────────────────────────────────────────────────
-
-  {
-    name: "get_reference",
-    description:
-      "Look up the database schema and metric concepts. Call with no parameters to see the full landscape: all tables, their purposes, and how they relate. Call with a table_name to see field definitions for a specific table. Call with a concept to look up what a specific metric means.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        table_name: {
-          type: "string",
-          enum: ["games", "prizes", "prize_snapshots", "game_metrics", "states"],
-          description: "Return schema for a specific table",
-        },
-        concept: {
-          type: "string",
-          enum: [
-            "net_value",
-            "outcome_probabilities",
-            "marginal_odds",
-            "risk",
-            "reward",
-            "depletion",
-          ],
-          description: "Return explanation of a metric concept",
-        },
-      },
-      required: [],
-    },
-  },
 ];
