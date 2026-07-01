@@ -437,7 +437,6 @@ export async function get_prize_snapshots(params: {
 
 // ─── Metric tools ───────────────────────────────────────────────────────────
 
-const DEFAULT_MARGINAL_THRESHOLDS = [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
 
 function normalizeIds(params: { game_ids: number[] }): number[] | null {
   return params.game_ids.length > 0 ? params.game_ids : null;
@@ -465,14 +464,12 @@ export async function get_outcome_probabilities(params: {
 
 export async function get_marginal_odds(params: {
   game_ids: number[];
-  threshold?: number;
+  threshold: number;
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
 
-  const thresholds = params.threshold !== undefined
-    ? [params.threshold]
-    : DEFAULT_MARGINAL_THRESHOLDS;
+  const thresholds = [params.threshold];
 
   try {
     const rows = await sql`
@@ -575,7 +572,7 @@ export async function get_risk_reward(params: {
   try {
     const rows = await sql`
       SELECT gm.game_id, g.game_name, g.game_number, g.price_tier, g.state, g.image_url,
-             gm.reward_raw, gm.risk_raw, gm.computed_at
+             gm.reward_raw, gm.risk_raw, gm.roi, gm.computed_at
       FROM game_metrics gm
       JOIN games g ON g.game_id = gm.game_id
       WHERE gm.game_id = ANY(${ids})

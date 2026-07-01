@@ -157,7 +157,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Compute the probability of winning at least a given net-profit threshold for one or more games, calculated from live prize tier data. Net profit = prize value minus ticket cost. A zero at a threshold means no prizes reach that net profit level — use get_prizes to see actual prize tiers.\n\nThreshold behavior:\n- OMIT threshold → computes odds at the standard ladder: $0, $10, $50, $100, $500, $1K, $5K, $10K, $50K, $100K. Always omit for comparisons — this guarantees all games are evaluated at identical thresholds.\n- SINGLE NUMBER → computes odds of winning at least that net-profit amount (e.g. threshold: 1000 for 'chance of profiting $1,000+').\n\nDo NOT pass a custom array of thresholds. For ladder views and game comparisons, always use the default by omitting threshold. Pass all game IDs in a single call so the same threshold applies to every game — comparability is guaranteed by the tool. Requires game IDs from query_games.",
+      "Compute the probability of winning at least a given net-profit threshold for one or more games, calculated from live prize tier data. Net profit = prize value minus ticket cost. A zero means no prizes reach that net profit level — use get_prizes to see actual prize tiers.\n\nthreshold is the net-profit dollar amount to check (e.g. 500 for 'chance of profiting $500+'). A \"large prize\" is any prize with net profit >= $500 — when a user asks about \"big wins,\" \"large prizes,\" or \"going for something bigger,\" use threshold 500. Pass all game IDs in a single call so the same threshold applies to every game — comparability is guaranteed by the tool. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -168,10 +168,10 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
         },
         threshold: {
           type: "number",
-          description: "Single net-profit dollar amount to check (e.g. 1000). Omit for the standard ladder of all default thresholds — always omit when comparing games.",
+          description: "Net-profit dollar amount to check (e.g. 500 for 'chance of profiting $500+').",
         },
       },
-      required: ["game_ids"],
+      required: ["game_ids", "threshold"],
     },
   },
 
