@@ -157,7 +157,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Probability of winning at least a specific dollar amount for one or more games. Goal-dependent — requires a dollar target from the user. Use when the user cares about reaching a specific prize level, or wants a detailed view into the prize remaining distribution. A \"large prize\" means net profit >= $500 — when the user says \"big win\" or \"large prize\" without a specific number, use threshold 500. Does not measure general win/loss odds (use get_outcome_probabilities) or the top prize specifically (use get_top_prizes). Requires game IDs from query_games.",
+      "Probability of winning at least a specific dollar amount for one or more games. Goal-dependent — requires a dollar target from the user. Use when the user cares about reaching a specific prize level, or wants a detailed view into the prize remaining distribution. Does not measure general win/loss odds (use get_outcome_probabilities) or the top prize specifically (use get_top_prizes). Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
