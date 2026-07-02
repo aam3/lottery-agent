@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 
-interface TraceData {
+interface TurnTrace {
   timestamp: string;
   state: string;
   question: string;
@@ -21,27 +21,43 @@ interface TraceData {
   duration_ms: number;
 }
 
-const TRACES_DIR = path.join(process.cwd(), "traces");
-
-function sanitizeForFilename(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 5)
-    .join("-");
+interface ConversationTrace {
+  conversationId: string;
+  startedAt: string;
+  turns: TurnTrace[];
 }
 
-export async function writeTrace(data: TraceData): Promise<string> {
+const TRACES_DIR = path.join(process.cwd(), "traces");
+
+function getFilepath(conversationId: string): string {
+  return path.join(TRACES_DIR, `${conversationId}.json`);
+}
+
+export async function writeTrace(
+  conversationId: string,
+  turn: TurnTrace,
+): Promise<string> {
   await mkdir(TRACES_DIR, { recursive: true });
 
-  const slug = sanitizeForFilename(data.question);
-  const ts = data.timestamp.replace(/[:.]/g, "-");
-  const filename = `${ts}_${slug}.json`;
-  const filepath = path.join(TRACES_DIR, filename);
+  const filepath = getFilepath(conversationId);
 
-  await writeFile(filepath, JSON.stringify(data, null, 2));
-  console.log(`[trace] Written to ${filename}`);
+  let conversation: ConversationTrace;
+  try {
+    const existing = await readFile(filepath, "utf-8");
+    conversation = JSON.parse(existing);
+  } catch {
+    conversation = {
+      conversationId,
+      startedAt: turn.timestamp,
+      turns: [],
+    };
+  }
+
+  conversation.turns.push(turn);
+
+  await writeFile(filepath, JSON.stringify(conversation, null, 2));
+  console.log(
+    `[trace] Turn ${conversation.turns.length} written to ${conversationId}.json`,
+  );
   return filepath;
 }

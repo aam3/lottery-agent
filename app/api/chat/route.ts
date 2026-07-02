@@ -16,8 +16,9 @@ export async function POST(request: Request) {
   }
 
   // Validate messages array
-  const { messages } = body as {
+  const { messages, conversationId } = body as {
     messages?: Array<{ role: string; content: string }>;
+    conversationId?: string;
   };
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -73,7 +74,9 @@ export async function POST(request: Request) {
 
     // Write trace (fire-and-forget — don't block the response)
     const timestamp = new Date().toISOString();
-    writeTrace({
+    const traceId =
+      conversationId || `conv-${timestamp.replace(/[:.]/g, "-")}`;
+    writeTrace(traceId, {
       timestamp,
       state,
       question,

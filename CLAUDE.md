@@ -117,6 +117,7 @@ If unsure whether a reference exists, list the contents of `.claude/_reference/`
 - Make a metric's relevance-driving context into a required parameter of its tool
 - When JSON Schema can't express "one of A or B required," consolidate to a single required param
 - When a domain term maps directly to a tool parameter value, define the term in the tool description, not in domain knowledge
+- When editing the agent system prompt, keep every instruction short, clear, and action-based — remove filler words and restate only what is essential for the model to act correctly
 
 ### Writing Style
 
