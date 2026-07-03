@@ -385,7 +385,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   type: { type: "string", const: "comparison_table" },
                   columns: {
                     type: "array",
-                    description: "Metric column headers — do NOT include the item/game name column, that is the row label. Example: ['Top Prize', 'Overall Odds', 'ROI per Dollar'].",
+                    description: "Metric column headers only — the first column (item/game name) is generated automatically from row labels, so do NOT include it here. Example: [{label:'Top Prize'}, {label:'Overall Odds'}].",
                     items: {
                       type: "object",
                       properties: {

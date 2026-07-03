@@ -51,12 +51,15 @@ export default function OddsChart({ block }: { block: OddsChartBlock }) {
     <div style={{ ...S.card, padding: "16px 12px", height: 340 }}>
       {/* Legend (multi-game only) */}
       {!isSingle && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, marginBottom: 8, paddingRight: 8 }}>
           {games.map((g, i) => (
             <div key={`${g.game_name}-${g.game_number}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <LineSwatch color={priceColors[g.price_tier] ?? "#999"} dashArray={lineStyles[i]} />
               <span style={{ fontSize: T.sizeSmall, color: T.textPrimary, fontFamily: T.font }}>
                 {g.game_name}
+                <span style={{ marginLeft: 3 }}>
+                  (#{g.game_number})
+                </span>
               </span>
               <PricePill price={g.price_tier} color={priceColors[g.price_tier]} />
             </div>

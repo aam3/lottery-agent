@@ -231,6 +231,20 @@ const COMPARISON_BLOCK: ComparisonTableBlock = {
   ],
 };
 
+const STRATEGY_BLOCK: ComparisonTableBlock = {
+  type: "comparison_table",
+  columns: [
+    { label: "Total Cost" },
+    { label: "Chance of Win" },
+  ],
+  rows: [
+    { label: "9× Gold Rush (#1501) ($5)", price_tier: 5, values: ["$45", "83.7%"] },
+    { label: "1× Diamond Dazzle (#1523) ($10) + 4× Gold Rush (#1501) ($5)", values: ["$50", "63.7%"] },
+    { label: "4× Lucky 7s (#1489) ($5) + 1× Cash Blast (#1510) ($2)", values: ["$22", "62.2%"] },
+    { label: "1× Diamond Dazzle (#1523) ($10) + 3× Gold Rush (#1501) ($5) + 1× Cash Blast (#1510) ($2)", values: ["$27", "56.3%"] },
+  ],
+};
+
 const DEPLETION_BLOCK: DepletionBarsBlock = {
   type: "depletion_bars",
   game_name: "Gold Rush",
@@ -308,6 +322,13 @@ export default function TestBlocksPage() {
       <Section title="Comparison Table">
         <div style={{ maxWidth: 600 }}>
           <ComparisonTable block={COMPARISON_BLOCK} />
+        </div>
+      </Section>
+
+      {/* Strategy Comparison Table */}
+      <Section title="Strategy Comparison Table">
+        <div style={{ maxWidth: 600 }}>
+          <ComparisonTable block={STRATEGY_BLOCK} />
         </div>
       </Section>
 

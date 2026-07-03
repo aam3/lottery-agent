@@ -9,7 +9,7 @@ export default function DepletionBars({ block }: { block: DepletionBarsBlock }) 
     <div style={{ ...S.card, padding: 20 }}>
       <div style={{ ...S.sectionTitle, fontFamily: T.font, marginBottom: 16 }}>
         {block.game_name}
-        <span style={{ fontSize: T.sizeCaption, fontWeight: T.weightBody, color: T.textTertiary, marginLeft: 4 }}>
+        <span style={{ fontSize: T.sizeBody, fontWeight: T.weightBody, color: T.textTertiary, marginLeft: 4 }}>
           (#{block.game_number})
         </span>
         <span style={{ fontSize: T.sizeSmall, fontWeight: T.weightBody, color: T.textSecondary, marginLeft: 8 }}>
