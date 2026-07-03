@@ -166,12 +166,13 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
           items: { type: "integer" },
           description: "Game IDs from query_games. Pass all games in one call to ensure same thresholds.",
         },
-        threshold: {
-          type: "number",
-          description: "Net-profit dollar amount to check (e.g. 500 for 'chance of profiting $500+').",
+        thresholds: {
+          type: "array",
+          items: { type: "number" },
+          description: "Net-profit dollar amounts to check. Single: [500]. Multiple: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000].",
         },
       },
-      required: ["game_ids", "threshold"],
+      required: ["game_ids", "thresholds"],
     },
   },
 

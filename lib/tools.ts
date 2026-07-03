@@ -314,12 +314,12 @@ export async function get_outcome_probabilities(params: {
 
 export async function get_marginal_odds(params: {
   game_ids: number[];
-  threshold: number;
+  thresholds: number[];
 }) {
   const ids = normalizeIds(params);
   if (!ids) return { error: "Provide game_id or game_ids." };
 
-  const thresholds = [params.threshold];
+  const thresholds = params.thresholds;
 
   try {
     const rows = await sql`
