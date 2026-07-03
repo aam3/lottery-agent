@@ -218,16 +218,16 @@ const ODDS_MULTI_BLOCK: OddsChartBlock = {
 
 const COMPARISON_BLOCK: ComparisonTableBlock = {
   type: "comparison_table",
-  games: [
-    { game_name: "Gold Rush", game_number: "1501", price_tier: 5 },
-    { game_name: "Lucky 7s", game_number: "1489", price_tier: 5 },
-    { game_name: "Diamond Dazzle", game_number: "1523", price_tier: 10 },
+  columns: [
+    { label: "Top Prize" },
+    { label: "Overall Odds" },
+    { label: "Odds $500+" },
+    { label: "ROI per Dollar" },
   ],
   rows: [
-    { label: "Top Prize", values: ["$500K", "$250K", "$1M"] },
-    { label: "Overall Odds", values: ["32.500%", "28.000%", "38.000%"] },
-    { label: "Odds $500+", values: ["0.012%", "0.008%", "0.040%"] },
-    { label: "ROI per Dollar", values: ["-$0.35", "-$0.42", "-$0.28"] },
+    { label: "Gold Rush (#1501)", price_tier: 5, values: ["$500K", "32.500%", "0.012%", "-$0.35"] },
+    { label: "Lucky 7s (#1489)", price_tier: 5, values: ["$250K", "28.000%", "0.008%", "-$0.42"] },
+    { label: "Diamond Dazzle (#1523)", price_tier: 10, values: ["$1M", "38.000%", "0.040%", "-$0.28"] },
   ],
 };
 

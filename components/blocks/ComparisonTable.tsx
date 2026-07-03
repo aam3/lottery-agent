@@ -6,12 +6,12 @@ import { PricePill } from "@/lib/chartUtils";
 import type { ComparisonTableBlock } from "./types";
 
 export default function ComparisonTable({ block }: { block: ComparisonTableBlock }) {
-  const { games, rows } = block;
+  const { columns, rows } = block;
 
-  const priceColors = useMemo(
-    () => buildPriceColors([...new Set(games.map((g) => g.price_tier))]),
-    [games],
-  );
+  const priceColors = useMemo(() => {
+    const tiers = rows.map((r) => r.price_tier).filter((t): t is number => t != null);
+    return tiers.length > 0 ? buildPriceColors([...new Set(tiers)]) : {};
+  }, [rows]);
 
   return (
     <div style={{ ...S.card, overflow: "hidden" }}>
@@ -23,35 +23,36 @@ export default function ComparisonTable({ block }: { block: ComparisonTableBlock
           <tr>
             <th style={{
               textAlign: "left", padding: "10px 14px",
-              borderBottom: `1px solid ${T.divider}`, width: 120,
+              borderBottom: `1px solid ${T.divider}`, width: 180,
             }} />
-            {games.map((g, i) => (
+            {columns.map((col, i) => (
               <th key={i} style={{
+                ...S.metricLabel,
                 textAlign: "center", padding: "10px 14px",
-                borderBottom: `1px solid ${T.divider}`, fontWeight: T.weightTitle,
+                borderBottom: `1px solid ${T.divider}`,
+                textTransform: "uppercase",
               }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span>{g.game_name}{g.game_number && <span style={{
-                      fontSize: T.sizeCaption, color: T.textTertiary, fontWeight: T.weightBody
-                    }}> (#{g.game_number})</span>}</span>
-                    <PricePill price={g.price_tier} color={priceColors[g.price_tier]} />
-                  </div>
-                </div>
+                {col.label}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={row.label}>
+            <tr key={ri}>
               <td style={{
-                ...S.metricLabel, padding: "8px 14px",
+                padding: "8px 14px",
                 borderBottom: ri < rows.length - 1 ? `1px solid ${T.divider}` : "none",
-                textTransform: "uppercase",
+                fontWeight: T.weightTitle,
+                color: T.textPrimary,
                 fontFamily: T.font,
               }}>
-                {row.label}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>{row.label}</span>
+                  {row.price_tier != null && (
+                    <PricePill price={row.price_tier} color={priceColors[row.price_tier]} />
+                  )}
+                </div>
               </td>
               {row.values.map((v, ci) => (
                 <td key={ci} style={{

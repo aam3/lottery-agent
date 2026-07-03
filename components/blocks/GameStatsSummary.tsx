@@ -63,7 +63,11 @@ export default function GameStatsSummary({ block }: { block: GameStatsSummaryBlo
         </div>
         {/* Metrics row */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          {block.metrics.map((m) => {
+          {[...block.metrics].sort((a, b) => {
+            const aRank = /rank/i.test(a.label) ? 0 : 1;
+            const bRank = /rank/i.test(b.label) ? 0 : 1;
+            return aRank - bRank;
+          }).map((m) => {
             const isRank = /rank/i.test(m.label);
             return (
               <div key={m.label}>

@@ -343,7 +343,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
               {
                 title: "odds_chart",
                 description:
-                  "Line chart showing the probability of winning at least each dollar amount for 1–4 games. Use when summarizing the prize distribution of a game or comparing prize distributions across games. Requires marginal odds from get_marginal_odds at multiple dollar amounts; default thresholds are [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000]. Do NOT use to answer general odds questions (e.g. 'what are my chances of winning') — use text with outcome probabilities for that. Do NOT use for a single probability at one threshold — state that in text instead.",
+                  "Line chart showing the probability of winning at least each dollar amount for 1–4 games. Use when summarizing the prize distribution of a game or comparing prize distributions across games. Requires marginal odds from get_marginal_odds at multiple dollar amounts; default thresholds are [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000]. The chart has hover tooltips — do not list the same probabilities in text. Do NOT use to answer general odds questions (e.g. 'what are my chances of winning') — use text with outcome probabilities for that. Do NOT use for a single probability at one threshold — state that in text instead.",
                 properties: {
                   type: { type: "string", const: "odds_chart" },
                   games: {
@@ -379,38 +379,40 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
               {
                 title: "comparison_table",
                 description:
-                  "Side-by-side metric comparison for 2+ games. Each row is a metric (e.g. Top Prize, Overall Odds, ROI) with one pre-formatted value per game. Use when comparing games or presenting ranked options — the metrics you include should support the comparison the user is asking about. Do NOT use for a single game — use game_stats_summary instead.",
+                  "Table comparing 2+ items side-by-side. Rows are the items being compared (games, ticket strategies, bundles), columns are metrics. Use when comparing games, presenting ranked options, or comparing multi-ticket strategies — the metrics you include should support the comparison the user is asking about. Do NOT use for a single game — use game_stats_summary instead.",
                 properties: {
                   type: { type: "string", const: "comparison_table" },
-                  games: {
+                  columns: {
                     type: "array",
-                    description: "Column headers. Order matches value arrays in rows.",
-                    minItems: 2,
+                    description: "Metric column headers — do NOT include the item/game name column, that is the row label. Example: ['Top Prize', 'Overall Odds', 'ROI per Dollar'].",
                     items: {
                       type: "object",
                       properties: {
-                        game_name: { type: "string" },
-                        game_number: { type: "string" },
-                        price_tier: { type: "number" },
+                        label: { type: "string" },
                       },
-                      required: ["game_name", "game_number", "price_tier"],
+                      required: ["label"],
                       additionalProperties: false,
                     },
                   },
                   rows: {
                     type: "array",
-                    description: "Metric rows. Each row has a label and one value per game, in the same order as games.",
+                    description: "Items being compared. Each row has a label (game name or strategy description), optional price_tier for a price pill, and one value per column.",
+                    minItems: 2,
                     items: {
                       type: "object",
                       properties: {
                         label: {
                           type: "string",
-                          description: "Row label (e.g. 'Top Prize', 'Overall Odds', 'ROI per Dollar').",
+                          description: "Row label — game name with number (e.g. 'Gold Rush (#1501)') or strategy (e.g. '9× Super Crossword ($5)').",
+                        },
+                        price_tier: {
+                          type: "number",
+                          description: "Ticket price for price pill display. Omit for mixed-price strategies.",
                         },
                         values: {
                           type: "array",
                           items: { type: "string" },
-                          description: "One formatted value per game, same order as games array.",
+                          description: "One formatted value per column, same order as columns array. Must have exactly as many values as there are columns.",
                         },
                       },
                       required: ["label", "values"],
@@ -418,7 +420,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                     },
                   },
                 },
-                required: ["type", "games", "rows"],
+                required: ["type", "columns", "rows"],
                 additionalProperties: false,
               },
               {

@@ -24,8 +24,8 @@ export interface OddsChartBlock {
 
 export interface ComparisonTableBlock {
   type: "comparison_table";
-  games: { game_name: string; game_number: string; price_tier: number }[];
-  rows: { label: string; values: string[] }[];
+  columns: { label: string }[];
+  rows: { label: string; price_tier?: number; values: string[] }[];
 }
 
 export interface DepletionBarsBlock {

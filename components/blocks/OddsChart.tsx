@@ -48,7 +48,7 @@ export default function OddsChart({ block }: { block: OddsChartBlock }) {
   );
 
   return (
-    <div style={{ ...S.card, padding: "16px 12px", height: 400 }}>
+    <div style={{ ...S.card, padding: "16px 12px", height: 340 }}>
       {/* Legend (multi-game only) */}
       {!isSingle && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", marginBottom: 8 }}>
