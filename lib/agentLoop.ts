@@ -3,6 +3,7 @@ import { anthropic } from "@/lib/anthropic";
 import { systemPrompt } from "@/lib/systemPrompt";
 import { toolDefinitions } from "@/lib/toolDefs";
 import { toolHandlers } from "@/lib/tools";
+import type { Block } from "@/components/blocks/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,13 +48,15 @@ export async function runAgentLoop(params: {
   maxIterations?: number;
 }): Promise<{
   steps: ToolStep[];
-  answer: string;
+  answer?: string;
+  blocks?: Block[];
   usage: UsageSummary;
 }> {
   const model = params.model ?? DEFAULT_MODEL;
   const maxIterations = params.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   const messages: Anthropic.MessageParam[] = [...params.messages];
   const steps: ToolStep[] = [];
+  let capturedBlocks: Block[] | undefined;
   const usage: UsageSummary = {
     input_tokens: 0,
     output_tokens: 0,
@@ -82,19 +85,22 @@ export async function runAgentLoop(params: {
         .cache_read_input_tokens ?? 0;
     usage.iterations += 1;
 
-    // If the model is done, extract the text answer
+    // If the model is done, return blocks if captured, otherwise text answer
     if (response.stop_reason === "end_turn") {
-      const textBlocks = response.content.filter(
-        (b): b is Anthropic.TextBlock => b.type === "text",
-      );
-      const answer = textBlocks.map((b) => b.text).join("\n");
-
       console.log(
         `[agent-loop] Done. ${usage.iterations} iteration(s), ` +
           `${usage.input_tokens} in / ${usage.output_tokens} out, ` +
           `cache: ${usage.cache_read_input_tokens} read / ${usage.cache_creation_input_tokens} created`,
       );
 
+      if (capturedBlocks) {
+        return { steps, blocks: capturedBlocks, usage };
+      }
+
+      const textBlocks = response.content.filter(
+        (b): b is Anthropic.TextBlock => b.type === "text",
+      );
+      const answer = textBlocks.map((b) => b.text).join("\n");
       return { steps, answer, usage };
     }
 
@@ -125,6 +131,11 @@ export async function runAgentLoop(params: {
               error: `Tool execution error: ${(err as Error).message}`,
             };
           }
+        }
+
+        // Capture blocks from render_response
+        if (toolUse.name === "render_response" && result && typeof result === "object" && "blocks" in result) {
+          capturedBlocks = (result as { blocks: Block[] }).blocks;
         }
 
         steps.push({

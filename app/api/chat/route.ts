@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       state,
       question,
       steps: result.steps,
-      answer: result.answer,
+      answer: result.answer ?? "[rendered as blocks]",
       usage: result.usage,
       duration_ms: Date.now() - startTime,
     }).catch((err) => console.error("[trace] Failed to write:", err));

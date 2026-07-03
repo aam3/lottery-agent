@@ -563,6 +563,12 @@ export async function calculate_multi_ticket_odds(params: {
   };
 }
 
+// ─── Response formatting ──────────────────────────────────────────────────────
+
+export async function render_response(params: { blocks: unknown[] }) {
+  return { blocks: params.blocks };
+}
+
 // ─── Dispatcher map (for Phase 2 agent loop) ────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -578,4 +584,5 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_risk_reward,
   get_top_prizes,
   calculate_multi_ticket_odds,
+  render_response,
 };

@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import BlockRenderer from "@/components/blocks/BlockRenderer";
+import type { Block } from "@/components/blocks/types";
+import { T } from "@/lib/tokens";
 
 const STATES = ["NJ", "CA", "FL", "NY", "OH"] as const;
 
@@ -22,7 +25,8 @@ interface UsageSummary {
 interface Turn {
   question: string;
   steps: ToolStep[];
-  answer: string;
+  answer?: string;
+  blocks?: Block[];
   usage: UsageSummary;
 }
 
@@ -80,9 +84,11 @@ export default function Home() {
         return;
       }
 
+      // For conversation history, use answer text or a placeholder for block responses
+      const assistantContent = data.answer ?? "[structured response]";
       setMessages([
         ...newMessages,
-        { role: "assistant" as const, content: data.answer },
+        { role: "assistant" as const, content: assistantContent },
       ]);
       setTurns([
         ...turns,
@@ -90,6 +96,7 @@ export default function Home() {
           question: trimmed,
           steps: data.steps,
           answer: data.answer,
+          blocks: data.blocks,
           usage: data.usage,
         },
       ]);
@@ -160,33 +167,61 @@ export default function Home() {
               )}
 
               {/* Assistant answer */}
-              <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-800 prose prose-sm max-w-none">
-                <ReactMarkdown
-                  components={{
-                    img: ({ src, alt }) => (
-                      <img
-                        src={src}
-                        alt={alt ?? ""}
-                        className="not-prose float-left w-14 h-14 object-cover rounded-md border border-gray-200 mr-3 mt-1"
-                      />
-                    ),
-                    p: ({ children, ...props }) => {
-                      // If a paragraph contains only an image, render as a plain span
-                      // so it doesn't create a block-level gap
-                      const childArray = Array.isArray(children) ? children : [children];
-                      const hasOnlyImg = childArray.length === 1 &&
-                        typeof childArray[0] === "object" &&
-                        childArray[0] !== null &&
-                        "type" in childArray[0] &&
-                        childArray[0].type === "img";
-                      if (hasOnlyImg) return <>{children}</>;
-                      return <p {...props}>{children}</p>;
-                    },
-                  }}
-                >
-                  {turn.answer}
-                </ReactMarkdown>
-              </div>
+              {turn.blocks ? (
+                <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                  <BlockRenderer blocks={turn.blocks} />
+                </div>
+              ) : turn.answer ? (
+                <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-800 prose prose-sm max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      hr: () => null,
+                      img: ({ src, alt }) => (
+                        <img
+                          src={src}
+                          alt={alt ?? ""}
+                          className="not-prose float-left w-14 h-14 object-cover rounded-md border border-gray-200 mr-3 mt-1"
+                        />
+                      ),
+                      p: ({ children, ...props }) => {
+                        // If a paragraph contains only an image, render as a plain span
+                        // so it doesn't create a block-level gap
+                        const childArray = Array.isArray(children) ? children : [children];
+                        const hasOnlyImg = childArray.length === 1 &&
+                          typeof childArray[0] === "object" &&
+                          childArray[0] !== null &&
+                          "type" in childArray[0] &&
+                          childArray[0].type === "img";
+                        if (hasOnlyImg) return <>{children}</>;
+                        return <p {...props}>{children}</p>;
+                      },
+                      em: ({ children, ...props }) => {
+                        const text = typeof children === "string" ? children : "";
+                        if (text.startsWith("Data last updated")) {
+                          return (
+                            <em
+                              {...props}
+                              style={{
+                                display: "block",
+                                marginTop: 24,
+                                paddingTop: 12,
+                                borderTop: `1px solid ${T.divider}`,
+                                color: T.textTertiary,
+                                fontSize: T.sizeSmall,
+                              }}
+                            >
+                              {children}
+                            </em>
+                          );
+                        }
+                        return <em {...props}>{children}</em>;
+                      },
+                    }}
+                  >
+                    {turn.answer}
+                  </ReactMarkdown>
+                </div>
+              ) : null}
 
               {/* Usage badge */}
               <div className="text-xs text-gray-400">

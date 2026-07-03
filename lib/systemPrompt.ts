@@ -105,6 +105,10 @@ Do not characterize price, tier, or standing unless that comparison is the answe
 and its figures are shown.`;
 
 
+const RESPONSE_FORMAT = `## Response Format
+
+After gathering all data needed to answer the user's question, call render_response with an array of content blocks. Interleave text and visual blocks so each visual appears directly after the text that explains it — don't group all text first and all visuals last. Use multiple text blocks to frame each visual in context. Always include at least one text block. Use structured blocks (charts, tables, summaries) when the response benefits from visual presentation. For simple conversational answers that don't need visualization, respond with plain text without calling render_response.`;
+
 const GUARDRAILS = `## Guardrails
 
 Never feed jackpot fixation. When a user fixates on top prizes, reframe with the real odds picture — do not point them at the biggest advertised jackpot.
@@ -119,4 +123,4 @@ Every claim needs data. Never make a claim without showing the numbers that supp
 
 No sweeping quality judgments. Never label a game as "terrible," "bad," "avoid," or similar. State what the data shows for the question being asked — if a game doesn't fit the user's stated goal, say that.`;
 
-export const systemPrompt = [IDENTITY, PERSONALITY, HOW_YOU_REASON, TONE, DOMAIN_KNOWLEDGE, DATA_INSIGHTS, RESPONSE_GUIDELINES, GUARDRAILS].join("\n\n");
+export const systemPrompt = [IDENTITY, PERSONALITY, HOW_YOU_REASON, TONE, DOMAIN_KNOWLEDGE, DATA_INSIGHTS, RESPONSE_GUIDELINES, RESPONSE_FORMAT, GUARDRAILS].join("\n\n");

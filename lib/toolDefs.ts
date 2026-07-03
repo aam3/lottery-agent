@@ -270,4 +270,240 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     },
   },
 
+  // ─── Response formatting ─────────────────────────────────────────────────
+
+  {
+    name: "render_response",
+    description:
+      "Format the final response for the user. Call as the last step after gathering all data needed to answer the question.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        blocks: {
+          type: "array",
+          description: "Ordered list of content blocks to display.",
+          items: {
+            type: "object",
+            oneOf: [
+              {
+                title: "text",
+                description:
+                  "Conversational text in markdown. This is the only block where you speak directly to the user — use it for explanations, recommendations, caveats, and framing. Always include at least one text block so the response feels like a conversation, not just data.",
+                properties: {
+                  type: { type: "string", const: "text" },
+                  content: {
+                    type: "string",
+                    description: "Markdown-formatted text.",
+                  },
+                },
+                required: ["type", "content"],
+                additionalProperties: false,
+              },
+              {
+                title: "game_stats_summary",
+                description:
+                  "A single game's key metrics displayed as a horizontal row with an image. Metrics are whichever values support the recommendation or requested game summary — you choose which to include and pre-format each as a label/value pair. Use when presenting one game's profile after a lookup or as part of a recommendation. Do NOT use for comparing multiple games side-by-side — use comparison_table for that.",
+                properties: {
+                  type: { type: "string", const: "game_stats_summary" },
+                  game_name: { type: "string" },
+                  game_number: { type: "string" },
+                  image_url: {
+                    type: ["string", "null"],
+                    description: "Game image URL from query_games, or null.",
+                  },
+                  metrics: {
+                    type: "array",
+                    description:
+                      "Pre-formatted metric entries, max 4. Labels containing 'rank' are auto-accented.",
+                    maxItems: 4,
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: {
+                          type: "string",
+                          description: "Metric name shown as the header (e.g. 'Top Prize', 'Price Rank').",
+                        },
+                        value: {
+                          type: "string",
+                          description: "Formatted display value (e.g. '$500K', '1 in 3.1', '#2 of 14').",
+                        },
+                        suffix: {
+                          type: "string",
+                          description: "Optional secondary text shown after the value (e.g. '(3 left)').",
+                        },
+                      },
+                      required: ["label", "value"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["type", "game_name", "game_number", "image_url", "metrics"],
+                additionalProperties: false,
+              },
+              {
+                title: "odds_chart",
+                description:
+                  "Line chart showing the probability of winning at least each dollar amount for 1–4 games. Use when summarizing the prize distribution of a game or comparing prize distributions across games. Requires marginal odds from get_marginal_odds at multiple dollar amounts; default thresholds are [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000]. Do NOT use to answer general odds questions (e.g. 'what are my chances of winning') — use text with outcome probabilities for that. Do NOT use for a single probability at one threshold — state that in text instead.",
+                properties: {
+                  type: { type: "string", const: "odds_chart" },
+                  games: {
+                    type: "array",
+                    description: "1–4 games. Each needs marginal odds from get_marginal_odds at multiple thresholds.",
+                    minItems: 1,
+                    maxItems: 4,
+                    items: {
+                      type: "object",
+                      properties: {
+                        game_name: { type: "string" },
+                        game_number: { type: "string" },
+                        price_tier: { type: "number" },
+                        top_prize_value: {
+                          type: "number",
+                          description: "Top prize value. Used to cap thresholds in single-game mode.",
+                        },
+                        marginal_odds: {
+                          type: "object",
+                          description:
+                            "Map of dollar threshold (as string key) to probability. Keys: '0', '10', '50', '100', '500', '1000', '5000', '10000', '50000', '100000'. Values from get_marginal_odds.",
+                          additionalProperties: { type: "number" },
+                        },
+                      },
+                      required: ["game_name", "game_number", "price_tier", "top_prize_value", "marginal_odds"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["type", "games"],
+                additionalProperties: false,
+              },
+              {
+                title: "comparison_table",
+                description:
+                  "Side-by-side metric comparison for 2+ games. Each row is a metric (e.g. Top Prize, Overall Odds, ROI) with one pre-formatted value per game. Use when comparing games or presenting ranked options — the metrics you include should support the comparison the user is asking about. Do NOT use for a single game — use game_stats_summary instead.",
+                properties: {
+                  type: { type: "string", const: "comparison_table" },
+                  games: {
+                    type: "array",
+                    description: "Column headers. Order matches value arrays in rows.",
+                    minItems: 2,
+                    items: {
+                      type: "object",
+                      properties: {
+                        game_name: { type: "string" },
+                        game_number: { type: "string" },
+                        price_tier: { type: "number" },
+                      },
+                      required: ["game_name", "game_number", "price_tier"],
+                      additionalProperties: false,
+                    },
+                  },
+                  rows: {
+                    type: "array",
+                    description: "Metric rows. Each row has a label and one value per game, in the same order as games.",
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: {
+                          type: "string",
+                          description: "Row label (e.g. 'Top Prize', 'Overall Odds', 'ROI per Dollar').",
+                        },
+                        values: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "One formatted value per game, same order as games array.",
+                        },
+                      },
+                      required: ["label", "values"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["type", "games", "rows"],
+                additionalProperties: false,
+              },
+              {
+                title: "depletion_bars",
+                description:
+                  "Three horizontal bars showing what percentage of prizes remain in high ($500+), mid ($50–$499), and low (under $50) bands for a single game. Data comes from get_depletion. Use when the user asks about prize availability or how much of a game's prize pool has been claimed — particularly relevant when the user cares about large prizes. One game per block — do NOT combine multiple games.",
+                properties: {
+                  type: { type: "string", const: "depletion_bars" },
+                  game_name: { type: "string" },
+                  game_number: { type: "string" },
+                  bands: {
+                    type: "array",
+                    description: "Three bands: High, Mid, Low.",
+                    minItems: 1,
+                    maxItems: 3,
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: {
+                          type: "string",
+                          description: "Band label: 'High', 'Mid', or 'Low'.",
+                        },
+                        range: {
+                          type: "string",
+                          description: "Dollar range description (e.g. '$500+', '$50 – $499', 'Under $50').",
+                        },
+                        pct: {
+                          type: "number",
+                          description: "Percentage of prizes remaining in this band (0–100).",
+                        },
+                      },
+                      required: ["name", "range", "pct"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["type", "game_name", "game_number", "bands"],
+                additionalProperties: false,
+              },
+              {
+                title: "risk_reward_scatter",
+                description:
+                  "Bubble chart plotting risk vs. reward for 2+ games across price tiers. Bubble size = avg cash prize, color = price tier. Data comes from get_risk_reward. ONLY use when games span multiple price tiers — the chart illustrates that higher-priced tickets carry more risk but offer higher potential reward. Games at the same price tier have identical risk, producing a useless vertical line. When all games share one price tier, use comparison_table instead. Do NOT use for a single game — describe risk/reward in text instead.",
+                properties: {
+                  type: { type: "string", const: "risk_reward_scatter" },
+                  games: {
+                    type: "array",
+                    description: "Games to plot. Need at least 2 for a meaningful scatter.",
+                    minItems: 2,
+                    items: {
+                      type: "object",
+                      properties: {
+                        game_name: { type: "string" },
+                        game_number: { type: "string" },
+                        price_tier: { type: "number" },
+                        risk_scaled: {
+                          type: "number",
+                          description: "Risk score (0–10 scale) from get_risk_reward.",
+                        },
+                        reward_scaled: {
+                          type: "number",
+                          description: "Reward score (0–10 scale) from get_risk_reward.",
+                        },
+                        avg_cash_prize: {
+                          type: "number",
+                          description: "Average cash prize in dollars. Drives bubble size.",
+                        },
+                        top_prize_value: {
+                          type: "number",
+                          description: "Top prize value for tooltip display.",
+                        },
+                      },
+                      required: ["game_name", "game_number", "price_tier", "risk_scaled", "reward_scaled", "avg_cash_prize", "top_prize_value"],
+                      additionalProperties: false,
+                    },
+                  },
+                },
+                required: ["type", "games"],
+                additionalProperties: false,
+              },
+            ],
+          },
+        },
+      },
+      required: ["blocks"],
+    },
+  },
 ];

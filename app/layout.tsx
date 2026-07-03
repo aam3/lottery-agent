@@ -12,7 +12,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body style={{ fontFamily: "'Outfit', sans-serif" }}>{children}</body>
     </html>
   );
 }
