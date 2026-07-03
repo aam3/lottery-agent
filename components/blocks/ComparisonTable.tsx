@@ -104,7 +104,7 @@ export default function ComparisonTable({ block }: { block: ComparisonTableBlock
                 fontWeight: T.weightTitle,
                 color: T.textPrimary,
                 fontFamily: T.font,
-                whiteSpace: "nowrap",
+                whiteSpace: row.label.includes(" + ") ? "normal" : "nowrap",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <StrategyLabel label={row.label} priceColors={priceColors} />
