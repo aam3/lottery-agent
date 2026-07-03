@@ -1,14 +1,18 @@
 "use client";
 
 import { T, S } from "@/lib/tokens";
+
+const cardBorder = {
+  border: `1px solid ${T.border}`,
+  borderRadius: T.cardRadius,
+};
 import type { GameStatsSummaryBlock } from "./types";
 
 export default function GameStatsSummary({ block }: { block: GameStatsSummaryBlock }) {
   return (
     <div style={{
       padding: "16px 28px",
-      borderTop: `1px solid ${T.divider}`,
-      borderBottom: `1px solid ${T.divider}`,
+      ...cardBorder,
       display: "flex",
       alignItems: "stretch",
       gap: 24,
