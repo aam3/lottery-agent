@@ -40,6 +40,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const conversationIdRef = useRef(
     `conv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   );
@@ -48,12 +49,12 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, loading]);
 
-  async function handleSend() {
+  async function sendMessage(text: string) {
     if (!selectedState) {
       setError("Select a state first.");
       return;
     }
-    const trimmed = input.trim();
+    const trimmed = text.trim();
     if (!trimmed) return;
 
     setError("");
@@ -105,6 +106,18 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSend() {
+    sendMessage(input);
+  }
+
+  function handleChoiceSelect(choice: string, prompt: string) {
+    if (choice.toLowerCase() === "something else") {
+      inputRef.current?.focus();
+      return;
+    }
+    sendMessage(`${prompt} ${choice}`);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -169,7 +182,11 @@ export default function Home() {
               {/* Assistant answer */}
               {turn.blocks ? (
                 <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-                  <BlockRenderer blocks={turn.blocks} />
+                  <BlockRenderer
+                    blocks={turn.blocks}
+                    onChoiceSelect={handleChoiceSelect}
+                    choicesDisabled={i < turns.length - 1 || loading}
+                  />
                 </div>
               ) : turn.answer ? (
                 <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-800 prose prose-sm max-w-none">
@@ -257,6 +274,7 @@ export default function Home() {
           )}
           <div className="flex gap-3">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}

@@ -323,24 +323,24 @@ export async function get_marginal_odds(params: {
 
   try {
     const rows = await sql`
-      SELECT p.prize_value, p.total_tickets,
-             g.game_id, g.game_name, g.game_number, g.price_tier, g.state,
-             g.tickets_printed
+      SELECT p.prize_value, p.prizes_remaining,
+             g.game_id, g.game_name, g.game_number, g.price_tier, g.state
       FROM prizes p
       JOIN games g ON g.game_id = p.game_id
       WHERE p.game_id = ANY(${ids})
       ORDER BY p.game_id, p.prize_value DESC NULLS LAST
     `;
 
-    // Group rows by game
+    // Group rows by game, accumulate totalRemaining across all tiers
     const gamesMap = new Map<number, {
       game_id: number; game_name: string; game_number: string;
-      price_tier: number; state: string; tickets_printed: number | null;
-      tiers: Array<{ prize_value: number | null; total_tickets: number | null }>;
+      price_tier: number; state: string; totalRemaining: number;
+      tiers: Array<{ prize_value: number | null; prizes_remaining: number }>;
     }>();
 
     for (const r of rows) {
       const gid = r.game_id as number;
+      const remaining = r.prizes_remaining as number;
       if (!gamesMap.has(gid)) {
         gamesMap.set(gid, {
           game_id: gid,
@@ -348,23 +348,25 @@ export async function get_marginal_odds(params: {
           game_number: r.game_number as string,
           price_tier: r.price_tier as number,
           state: r.state as string,
-          tickets_printed: r.tickets_printed as number | null,
+          totalRemaining: 0,
           tiers: [],
         });
       }
-      gamesMap.get(gid)!.tiers.push({
+      const game = gamesMap.get(gid)!;
+      game.totalRemaining += remaining;
+      game.tiers.push({
         prize_value: r.prize_value as number | null,
-        total_tickets: r.total_tickets as number | null,
+        prizes_remaining: remaining,
       });
     }
 
     const metrics = Array.from(gamesMap.values()).map((game) => {
-      if (!game.tickets_printed) {
+      if (game.totalRemaining === 0) {
         return {
           game_id: game.game_id, game_name: game.game_name,
           game_number: game.game_number, price_tier: game.price_tier,
           state: game.state,
-          error: "tickets_printed not available for this game.",
+          error: "No tickets remaining for this game.",
         };
       }
 
@@ -373,11 +375,11 @@ export async function get_marginal_odds(params: {
         const qualifying = game.tiers
           .filter((tier) =>
             tier.prize_value !== null &&
-            tier.total_tickets !== null &&
+            tier.prizes_remaining > 0 &&
             (tier.prize_value - game.price_tier) >= t
           )
-          .reduce((sum, tier) => sum + (tier.total_tickets as number), 0);
-        marginal_odds[`mo_${t}`] = qualifying / game.tickets_printed;
+          .reduce((sum, tier) => sum + tier.prizes_remaining, 0);
+        marginal_odds[`mo_${t}`] = qualifying / game.totalRemaining;
       }
 
       return {
@@ -507,60 +509,94 @@ export async function get_top_prizes(params: {
   }
 }
 
-// ─── Computation tools ─────────────────────────────────────────────────────
+// ─── Recommendation tool ──────────────────────────────────────────────────────
 
-export async function calculate_multi_ticket_odds(params: {
+import { recommend, type Risk, type GameData, type Tier } from "@/lib/recommender";
+
+export async function optimize_multi_ticket_bundle(params: {
+  game_ids: number[];
   budget: number;
-  tickets: Array<{ probability: number; count: number; price_per_ticket: number }>;
+  goal: number;
+  risk: string;
 }) {
-  const { budget, tickets } = params;
+  const { game_ids, budget, goal, risk } = params;
 
-  if (!tickets || tickets.length === 0) {
-    return { error: "Provide at least one ticket entry with probability, count, and price_per_ticket." };
+  // Input validation
+  if (!game_ids || !Array.isArray(game_ids) || game_ids.length === 0) {
+    return { error: "game_ids is required (array of game IDs from query_games)." };
   }
-
   if (typeof budget !== "number" || budget <= 0) {
     return { error: `Invalid budget: ${budget}. Must be a positive number.` };
   }
-
-  // Validate inputs
-  for (const entry of tickets) {
-    if (typeof entry.probability !== "number" || entry.probability < 0 || entry.probability > 1) {
-      return { error: `Invalid probability: ${entry.probability}. Must be between 0 and 1.` };
-    }
-    if (!Number.isInteger(entry.count) || entry.count < 1) {
-      return { error: `Invalid count: ${entry.count}. Must be a positive integer.` };
-    }
-    if (typeof entry.price_per_ticket !== "number" || entry.price_per_ticket <= 0) {
-      return { error: `Invalid price_per_ticket: ${entry.price_per_ticket}. Must be a positive number.` };
-    }
+  if (typeof goal !== "number" || goal < 0) {
+    return { error: `Invalid goal: ${goal}. Must be 0 (win anything) or a positive dollar amount.` };
+  }
+  const validRisks = ["low", "mid", "high"];
+  if (!validRisks.includes(risk)) {
+    return { error: `Invalid risk: ${risk}. Must be 'low', 'mid', or 'high'.` };
   }
 
-  // Validate total cost does not exceed budget
-  const totalCost = tickets.reduce((sum, t) => sum + t.count * t.price_per_ticket, 0);
-  if (totalCost > budget) {
-    return {
-      error: `Total ticket cost ($${totalCost}) exceeds budget ($${budget}). Reduce ticket counts or choose cheaper games.`,
-    };
+  try {
+    const rows = await sql`
+      SELECT g.game_id, g.game_name, g.game_number, g.price_tier, g.image_url,
+             p.prize_value, p.prizes_remaining, p.is_free_ticket
+      FROM games g
+      JOIN prizes p ON p.game_id = g.game_id
+      WHERE g.game_id = ANY(${game_ids})
+      ORDER BY g.game_id, p.prize_value DESC NULLS LAST
+    `;
+
+    if (rows.length === 0) {
+      return { error: "No games found for the provided game_ids." };
+    }
+
+    // Transform rows into GameData[]
+    const gamesMap = new Map<number, {
+      gameId: number; gameName: string; gameNumber: string;
+      price: number; imageUrl: string | null;
+      tiers: Tier[]; totalRemaining: number;
+    }>();
+
+    for (const r of rows) {
+      const gid = r.game_id as number;
+      const remaining = r.prizes_remaining as number;
+      const prizeValue = r.prize_value as number | null;
+
+      if (!gamesMap.has(gid)) {
+        gamesMap.set(gid, {
+          gameId: gid,
+          gameName: r.game_name as string,
+          gameNumber: r.game_number as string,
+          price: r.price_tier as number,
+          imageUrl: r.image_url as string | null,
+          tiers: [],
+          totalRemaining: 0,
+        });
+      }
+
+      const game = gamesMap.get(gid)!;
+      game.totalRemaining += remaining;
+
+      // Winning tiers only: prize_value > 0 and remaining > 0
+      if (prizeValue !== null && prizeValue > 0 && remaining > 0) {
+        game.tiers.push({ prizeValue, remaining });
+      }
+    }
+
+    // Filter to games with at least one winning tier and totalRemaining > 0
+    const games: GameData[] = Array.from(gamesMap.values()).filter(
+      (g) => g.tiers.length > 0 && g.totalRemaining > 0
+    );
+
+    if (games.length === 0) {
+      return { error: "No games with remaining prizes found for the provided game_ids." };
+    }
+
+    const result = recommend(games, budget, goal, risk as Risk);
+    return result;
+  } catch (err) {
+    return { error: `Database error: ${(err as Error).message}` };
   }
-
-  const totalTickets = tickets.reduce((sum, t) => sum + t.count, 0);
-
-  // P(all lose) = ∏(1 − pᵢ) for each individual ticket
-  let allLoseProbability = 1;
-  for (const entry of tickets) {
-    allLoseProbability *= Math.pow(1 - entry.probability, entry.count);
-  }
-
-  return {
-    combined_probability: 1 - allLoseProbability,
-    all_lose_probability: allLoseProbability,
-    total_tickets: totalTickets,
-    total_cost: totalCost,
-    budget,
-    budget_remaining: budget - totalCost,
-    tickets,
-  };
 }
 
 // ─── Response formatting ──────────────────────────────────────────────────────
@@ -583,6 +619,6 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_depletion,
   get_risk_reward,
   get_top_prizes,
-  calculate_multi_ticket_odds,
+  optimize_multi_ticket_bundle,
   render_response,
 };

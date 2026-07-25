@@ -7,8 +7,19 @@ import OddsChart from "./OddsChart";
 import ComparisonTable from "./ComparisonTable";
 import DepletionBars from "./DepletionBars";
 import RiskRewardScatter from "./RiskRewardScatter";
+import ChoicesBlock from "./ChoicesBlock";
 
-function renderBlock(block: Block) {
+interface BlockRendererProps {
+  blocks: Block[];
+  onChoiceSelect?: (choice: string, prompt: string) => void;
+  choicesDisabled?: boolean;
+}
+
+function renderBlock(
+  block: Block,
+  onChoiceSelect?: (choice: string, prompt: string) => void,
+  choicesDisabled?: boolean,
+) {
   switch (block.type) {
     case "text":
       return <TextBlock block={block} />;
@@ -22,16 +33,28 @@ function renderBlock(block: Block) {
       return <DepletionBars block={block} />;
     case "risk_reward_scatter":
       return <RiskRewardScatter block={block} />;
+    case "choices":
+      return (
+        <ChoicesBlock
+          block={block}
+          onSelect={onChoiceSelect}
+          disabled={choicesDisabled}
+        />
+      );
     default:
       return null;
   }
 }
 
-export default function BlockRenderer({ blocks }: { blocks: Block[] }) {
+export default function BlockRenderer({
+  blocks,
+  onChoiceSelect,
+  choicesDisabled,
+}: BlockRendererProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {blocks.map((block, i) => {
-        const rendered = renderBlock(block);
+        const rendered = renderBlock(block, onChoiceSelect, choicesDisabled);
         if (!rendered) return null;
         return <div key={i}>{rendered}</div>;
       })}

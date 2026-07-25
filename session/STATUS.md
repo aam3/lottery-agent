@@ -1,5 +1,9 @@
 # Project Status
 
+## Session 1 — 2026-07-05 [build-recommendation-tool]
+Created the `optimize_multi_ticket_bundle` tool — a recommendation engine with internal router dispatching to three methods: coverage (win anything), single-hit (moonshot), and full search (beam search over capped convolution DP with Pareto frontier and risk-floor selection). Fixed `get_marginal_odds` to use `prizes_remaining` denominator. Removed `calculate_multi_ticket_odds` (redundant). Switched all probability calculations to net values (prize - cost). Extensively revised system prompt: refined agent identity to be tool-driven, rewrote "How Players Think" and risk tolerance sections to establish budget → goal → risk progression, tightened reasoning protocol. Iterative tool description refinement to guide agent toward correct question sequencing.
+- **Key areas:** `lib/recommender.ts`, `lib/tools.ts`, `lib/toolDefs.ts`, `lib/systemPrompt.ts`, `plans/features/build-recommendation-tool/plan.md`
+
 ## Session 1 — 2026-07-03 [phase-4-visualization]
 Implemented Phase 4 visualization end-to-end: design tokens, 8 block components, `render_response` tool with oneOf schema, agent loop integration, and frontend rendering. Collaboratively reviewed all block type descriptions against tool-description-guidance framework. Extensive UI testing and polish — fixed text spacing, freshness note styling, game stats summary layout (image spanning name + metrics), comparison table flip (rows=items, columns=metrics), strategy label formatting with price pills and quantity highlighting, odds chart legend stacking, and dynamic price color assignment. Changed `get_marginal_odds` to accept array of thresholds.
 - **Key areas:** `components/blocks/`, `lib/toolDefs.ts`, `lib/tokens.ts`, `lib/chartUtils.tsx`, `app/page.tsx`, `lib/systemPrompt.ts`

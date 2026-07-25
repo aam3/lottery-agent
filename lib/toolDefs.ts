@@ -139,7 +139,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_outcome_probabilities",
     description:
-      "Overall probability of losing, breaking even, or winning any cash above $0 for one or more games. Prize-value agnostic — no specific prize goal needed. Use when the user wants general win/loss odds without a dollar target. Does not tell you the chance of winning a specific amount — use get_marginal_odds for that. Requires game IDs from query_games.",
+      "Per-ticket probability of losing, breaking even (prize equals ticket price), or winning cash above $0. No specific prize goal needed. Does not measure total spend recovery or the chance of winning a specific amount — use get_marginal_odds for that. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -227,47 +227,38 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     },
   },
 
-  // ─── Computation tools ──────────────────────────────────────────────────
+  // ─── Recommendation tool ──────────────────────────────────────────────────
 
   {
-    name: "calculate_multi_ticket_odds",
+    name: "optimize_multi_ticket_bundle",
     description:
-      "Combined win probability for multi-ticket purchases within a budget. Goal-dependent — requires a budget the user has specified. Use to evaluate whether buying multiple tickets is better than a single more expensive one. Pure math — requires probabilities as input, does not query the database. First use get_outcome_probabilities or get_marginal_odds to get per-game probabilities, then pass them here. The result means \"probability that at least one ticket hits that threshold.\" Accepts multiple ticket groups so you can compare concentration (many tickets of one game) vs. diversification (tickets across different games).",
+      "The only way to determine how many tickets to buy of each game. Given a budget, goal, and risk tolerance, computes the optimal bundle — which games and how many of each — using convolution math that per-ticket odds cannot replicate. Without this tool, you can recommend individual games based on their metrics, but you cannot determine ticket quantities or construct multi-game bundles. Use your analysis tools to narrow game candidates before passing them here. Returns the recommended bundle, P(reach goal), P(win anything), and a plain-English explanation.",
     input_schema: {
       type: "object" as const,
       properties: {
+        game_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description:
+            "Game IDs selected based on metrics relevant to the user's goal — use marginal odds at the goal threshold for dollar goals, outcome probabilities for 'win anything' goals, or top prize odds for top-prize goals.",
+        },
         budget: {
           type: "number",
-          description:
-            "Total dollars the user wants to spend. The tool validates that the ticket selections don't exceed this amount.",
+          description: "Maximum dollars the user wants to spend on tickets.",
         },
-        tickets: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              probability: {
-                type: "number",
-                description:
-                  "Per-ticket probability of the outcome you're calculating for (e.g. p_winning_cash, mo_50). Must be between 0 and 1.",
-              },
-              count: {
-                type: "integer",
-                description: "Number of tickets at this probability",
-              },
-              price_per_ticket: {
-                type: "number",
-                description:
-                  "Ticket price in dollars (price_tier from query_games).",
-              },
-            },
-            required: ["probability", "count", "price_per_ticket"],
-          },
+        goal: {
+          type: "number",
           description:
-            "One entry per distinct probability. For same-game tickets, one entry with count = number of tickets. For different games, one entry per game.",
+            "Dollar amount the user wants to win. 0 = 'win anything.' 'Break even' or 'win my money back' = goal is their budget, not 0.",
+        },
+        risk: {
+          type: "string",
+          enum: ["low", "mid", "high"],
+          description:
+            "Determines the bundle composition. Different risk levels produce different game selections and ticket quantities — low favors games with high win rates, high concentrates on games with the best goal probability regardless of win rate. Must come from the user, not inferred — there is no neutral default.",
         },
       },
-      required: ["budget", "tickets"],
+      required: ["game_ids", "budget", "goal", "risk"],
     },
   },
 
@@ -422,6 +413,26 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   },
                 },
                 required: ["type", "columns", "rows"],
+                additionalProperties: false,
+              },
+              {
+                title: "choices",
+                description:
+                  "Multiple-choice question for the user. Renders as clickable buttons. Use for preference questions like prize goal and risk tolerance. Always include 'Something else' as the last option.",
+                properties: {
+                  type: { type: "string", const: "choices" },
+                  prompt: {
+                    type: "string",
+                    description: "The question being asked.",
+                  },
+                  options: {
+                    type: "array",
+                    items: { type: "string" },
+                    description:
+                      "Choice labels. Last item should be 'Something else'.",
+                  },
+                },
+                required: ["type", "prompt", "options"],
                 additionalProperties: false,
               },
               {

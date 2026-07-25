@@ -48,10 +48,17 @@ export interface RiskRewardScatterBlock {
   }[];
 }
 
+export interface ChoicesBlock {
+  type: "choices";
+  prompt: string;
+  options: string[];
+}
+
 export type Block =
   | TextBlock
   | GameStatsSummaryBlock
   | OddsChartBlock
   | ComparisonTableBlock
   | DepletionBarsBlock
-  | RiskRewardScatterBlock;
+  | RiskRewardScatterBlock
+  | ChoicesBlock;
