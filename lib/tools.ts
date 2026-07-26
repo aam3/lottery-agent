@@ -511,7 +511,7 @@ export async function get_top_prizes(params: {
 
 // ─── Recommendation tool ──────────────────────────────────────────────────────
 
-import { recommend, type Risk, type GameData, type Tier } from "@/lib/recommender";
+import { recommend, budgetProbe, resAndCap, type Risk, type GameData, type Tier } from "@/lib/recommender";
 
 export async function optimize_multi_ticket_bundle(params: {
   game_ids: number[];
@@ -599,6 +599,87 @@ export async function optimize_multi_ticket_bundle(params: {
   }
 }
 
+// ─── Budget probe ──────────────────────────────────────────────────────────────
+
+export async function probe_budget_for_goal(params: {
+  game_ids: number[];
+  goal: number;
+  budget: number;
+}) {
+  const { game_ids, goal, budget } = params;
+
+  if (!game_ids || !Array.isArray(game_ids) || game_ids.length === 0) {
+    return { error: "game_ids is required (array of game IDs)." };
+  }
+  if (typeof goal !== "number" || goal <= 0) {
+    return { error: `Invalid goal: ${goal}. Must be a positive dollar amount.` };
+  }
+  if (typeof budget !== "number" || budget <= 0) {
+    return { error: `Invalid budget: ${budget}. Must be a positive number.` };
+  }
+
+  try {
+    const rows = await sql`
+      SELECT g.game_id, g.game_name, g.game_number, g.price_tier, g.image_url,
+             p.prize_value, p.prizes_remaining, p.is_free_ticket
+      FROM games g
+      JOIN prizes p ON p.game_id = g.game_id
+      WHERE g.game_id = ANY(${game_ids})
+      ORDER BY g.game_id, p.prize_value DESC NULLS LAST
+    `;
+
+    if (rows.length === 0) {
+      return { error: "No games found for the provided game_ids." };
+    }
+
+    const gamesMap = new Map<number, {
+      gameId: number; gameName: string; gameNumber: string;
+      price: number; imageUrl: string | null;
+      tiers: Tier[]; totalRemaining: number;
+    }>();
+
+    for (const r of rows) {
+      const gid = r.game_id as number;
+      const remaining = r.prizes_remaining as number;
+      const prizeValue = r.prize_value as number | null;
+
+      if (!gamesMap.has(gid)) {
+        gamesMap.set(gid, {
+          gameId: gid,
+          gameName: r.game_name as string,
+          gameNumber: r.game_number as string,
+          price: r.price_tier as number,
+          imageUrl: r.image_url as string | null,
+          tiers: [],
+          totalRemaining: 0,
+        });
+      }
+
+      const game = gamesMap.get(gid)!;
+      game.totalRemaining += remaining;
+
+      if (prizeValue !== null && prizeValue > 0 && remaining > 0) {
+        game.tiers.push({ prizeValue, remaining });
+      }
+    }
+
+    const games: GameData[] = Array.from(gamesMap.values()).filter(
+      (g) => g.tiers.length > 0 && g.totalRemaining > 0
+    );
+
+    if (games.length === 0) {
+      return { error: "No games with remaining prizes found." };
+    }
+
+    const gamesLut = new Map(games.map((g) => [g.gameId, g]));
+    const message = budgetProbe(games, gamesLut, goal, budget);
+
+    return { goal, current_budget: budget, message };
+  } catch (err) {
+    return { error: `Database error: ${(err as Error).message}` };
+  }
+}
+
 // ─── Response formatting ──────────────────────────────────────────────────────
 
 export async function render_response(params: { blocks: unknown[] }) {
@@ -620,5 +701,6 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_risk_reward,
   get_top_prizes,
   optimize_multi_ticket_bundle,
+  probe_budget_for_goal,
   render_response,
 };

@@ -262,6 +262,31 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
     },
   },
 
+  {
+    name: "probe_budget_for_goal",
+    description:
+      "Estimates what budget would give a realistic shot at a dollar goal. Use after optimize_multi_ticket_bundle returns an unreachable goal — tells the user how much more they'd need to spend. Pass the same game_ids used in the original recommendation.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        game_ids: {
+          type: "array",
+          items: { type: "integer" },
+          description: "Same game IDs from the optimize_multi_ticket_bundle call.",
+        },
+        goal: {
+          type: "number",
+          description: "The dollar goal that was unreachable.",
+        },
+        budget: {
+          type: "number",
+          description: "The user's current budget. Probe searches upward from here.",
+        },
+      },
+      required: ["game_ids", "goal", "budget"],
+    },
+  },
+
   // ─── Response formatting ─────────────────────────────────────────────────
 
   {

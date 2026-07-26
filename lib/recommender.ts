@@ -18,6 +18,7 @@ export const CONFIG = {
   MAX_BUCKETS: 2000,
   FEASIBLE_EPS: 0.02,
   ESCALATE_TO: 0.50,
+  DIVERSITY: 2, // Diversity factor. 1 = no constraint. Higher = more spread across price tiers at large budgets.
 } as const;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -227,7 +228,8 @@ function describeBundleEntries(
 function coverageMethod(
   games: GameData[],
   budget: number,
-  trace: RoutingTrace
+  trace: RoutingTrace,
+  maxPerPrice: number
 ): RecommendResult {
   // Coverage density: -ln(1 - pWin) / price
   // Higher = more coverage per dollar
@@ -242,15 +244,20 @@ function coverageMethod(
   const bundle = createBundle();
   let remaining = budget;
   let current = bundle;
+  const usedAtPrice = new Map<number, number>();
 
   for (const { game } of ranked) {
     if (game.price > remaining) continue;
+    const atPrice = usedAtPrice.get(game.price) || 0;
+    const priceHeadroom = maxPerPrice - atPrice;
+    if (priceHeadroom <= 0) continue;
     const maxByBudget = Math.floor(remaining / game.price);
     const maxBySupply = game.totalRemaining;
-    const k = Math.min(maxByBudget, maxBySupply);
+    const k = Math.min(maxByBudget, maxBySupply, priceHeadroom);
     if (k <= 0) continue;
     current = addToBundle(current, game, k);
     remaining -= k * game.price;
+    usedAtPrice.set(game.price, atPrice + k);
     if (remaining <= 0) break;
   }
 
@@ -274,7 +281,8 @@ function singleHitMethod(
   budget: number,
   goal: number,
   risk: Risk,
-  trace: RoutingTrace
+  trace: RoutingTrace,
+  maxPerPrice: number
 ): RecommendResult {
   const gamesLut = new Map(games.map((g) => [g.gameId, g]));
 
@@ -322,15 +330,20 @@ function singleHitMethod(
   const bundle = createBundle();
   let remaining = budget;
   let current = bundle;
+  const usedAtPrice = new Map<number, number>();
 
   for (const { game } of ranked) {
     if (game.price > remaining) continue;
+    const atPrice = usedAtPrice.get(game.price) || 0;
+    const priceHeadroom = maxPerPrice - atPrice;
+    if (priceHeadroom <= 0) continue;
     const maxByBudget = Math.floor(remaining / game.price);
     const maxBySupply = game.totalRemaining;
-    const k = Math.min(maxByBudget, maxBySupply);
+    const k = Math.min(maxByBudget, maxBySupply, priceHeadroom);
     if (k <= 0) continue;
     current = addToBundle(current, game, k);
     remaining -= k * game.price;
+    usedAtPrice.set(game.price, atPrice + k);
     if (remaining <= 0) break;
   }
 
@@ -591,21 +604,34 @@ export function probReachG(
 
 function coverageBundleForFrontier(
   candidates: GameData[],
-  budget: number
+  budget: number,
+  maxPerPrice: number = Infinity
 ): Bundle {
-  const best = candidates
+  const ranked = candidates
     .filter((g) => pWin(g) > 0)
-    .reduce((a, b) => {
-      const da = -Math.log(1 - pWin(a)) / a.price;
-      const db = -Math.log(1 - pWin(b)) / b.price;
-      return da >= db ? a : b;
-    });
-  const n = Math.min(
-    Math.floor(budget / best.price),
-    best.totalRemaining
-  );
-  if (n <= 0) return createBundle();
-  return addToBundle(createBundle(), best, n);
+    .map((g) => ({ game: g, density: -Math.log(1 - pWin(g)) / g.price }))
+    .sort((a, b) => b.density - a.density);
+
+  let current = createBundle();
+  let remaining = budget;
+  const usedAtPrice = new Map<number, number>();
+  for (const { game } of ranked) {
+    if (game.price > remaining) continue;
+    const atPrice = usedAtPrice.get(game.price) || 0;
+    const priceHeadroom = maxPerPrice - atPrice;
+    if (priceHeadroom <= 0) continue;
+    const k = Math.min(
+      Math.floor(remaining / game.price),
+      game.totalRemaining,
+      priceHeadroom
+    );
+    if (k <= 0) continue;
+    current = addToBundle(current, game, k);
+    remaining -= k * game.price;
+    usedAtPrice.set(game.price, atPrice + k);
+    if (remaining <= 0) break;
+  }
+  return current;
 }
 
 // ── Beam search ─────────────────────────────────────────────────────────────
@@ -617,13 +643,22 @@ function bundleKey(b: Bundle): string {
     .join(",");
 }
 
+function ticketsAtPrice(bundle: Bundle, price: number, gamesLut: Map<number, GameData>): number {
+  let total = 0;
+  for (const [gameId, n] of bundle.qty) {
+    if (gamesLut.get(gameId)!.price === price) total += n;
+  }
+  return total;
+}
+
 function beamSearch(
   candidates: GameData[],
   gamesLut: Map<number, GameData>,
   budget: number,
   res: number,
   cap: number,
-  memo: Map<string, Float64Array>
+  memo: Map<string, Float64Array>,
+  maxPerPrice: number = Infinity
 ): Bundle[] {
   let beam: Bundle[] = [createBundle()];
   const explored: Bundle[] = [];
@@ -635,10 +670,13 @@ function beamSearch(
       const rem = budget - b.cost;
       for (const g of candidates) {
         if (g.price > rem) continue;
+        const priceHeadroom = maxPerPrice - ticketsAtPrice(b, g.price, gamesLut);
+        if (priceHeadroom <= 0) continue;
         // Coarse move (~1/3 of remaining budget) + fine move (1 ticket)
-        const coarse = Math.max(1, Math.floor((rem * 0.34) / g.price));
+        const coarse = Math.min(Math.max(1, Math.floor((rem * 0.34) / g.price)), priceHeadroom);
         const quantities = new Set([coarse, 1]);
         for (const q of quantities) {
+          if (q > priceHeadroom) continue;
           if (b.cost + q * g.price > budget) continue;
           const nb = addToBundle(b, g, q);
           const key = bundleKey(nb);
@@ -679,7 +717,7 @@ export function floorSelect(frontier: Bundle[], floor: number): Bundle | null {
 
 // ── Budget probe (escalation) ───────────────────────────────────────────────
 
-function budgetProbe(
+export function budgetProbe(
   candidates: GameData[],
   gamesLut: Map<number, GameData>,
   G: number,
@@ -708,7 +746,8 @@ function fullSearchMethod(
   budget: number,
   goal: number,
   risk: Risk,
-  trace: RoutingTrace
+  trace: RoutingTrace,
+  maxPerPrice: number
 ): RecommendResult {
   const floor = CONFIG.RISK_FLOOR[risk];
   const { res, cap } = resAndCap(goal);
@@ -716,8 +755,8 @@ function fullSearchMethod(
   const gamesLut = new Map(games.map((g) => [g.gameId, g]));
 
   // Beam search (goal end) + coverage bundle (A end)
-  const explored = beamSearch(games, gamesLut, budget, res, cap, memo);
-  const cov = coverageBundleForFrontier(games, budget);
+  const explored = beamSearch(games, gamesLut, budget, res, cap, memo, maxPerPrice);
+  const cov = coverageBundleForFrontier(games, budget, maxPerPrice);
   cov.B = probReachG(cov, gamesLut, res, cap, memo);
   cov.A = computeCoverage(cov, gamesLut);
   explored.push(cov);
@@ -737,7 +776,6 @@ function fullSearchMethod(
         (best, b) => (b.A > best.A ? b : best),
         cov
       );
-    const probeMsg = budgetProbe(games, gamesLut, goal, budget);
     return {
       status: "goal_unreachable_at_risk",
       recommended: describeBundleEntries(fallback, gamesLut),
@@ -747,8 +785,7 @@ function fullSearchMethod(
       message:
         `Best chance of reaching $${goal} while keeping your win-something odds >= ${(floor * 100).toFixed(0)}% ` +
         `is only ${((pick?.B ?? 0) * 100).toFixed(1)}%. ` +
-        `Ignoring risk, the ceiling at this budget is ${(ceiling.B * 100).toFixed(1)}%. ` +
-        probeMsg,
+        `Ignoring risk, the ceiling at this budget is ${(ceiling.B * 100).toFixed(1)}%.`,
       routingTrace: trace,
     };
   }
@@ -799,14 +836,22 @@ export function recommend(
   }
 
   const trace = route(games, budget, goal);
+  const totalTickets = Math.floor(budget / cheapest);
+  const D = CONFIG.DIVERSITY;
+  const divisor = D > 1
+    ? Math.max(1, Math.pow(Math.log10(totalTickets / 5), D - 1))
+    : 1;
+  const maxPerPrice = D > 1
+    ? Math.max(1, Math.floor(totalTickets / divisor))
+    : Infinity;
 
   switch (trace.method) {
     case "coverage":
-      return coverageMethod(games, budget, trace);
+      return coverageMethod(games, budget, trace, maxPerPrice);
     case "single_hit":
-      return singleHitMethod(games, budget, goal, risk, trace);
+      return singleHitMethod(games, budget, goal, risk, trace, maxPerPrice);
     case "full_search":
-      return fullSearchMethod(games, budget, goal, risk, trace);
+      return fullSearchMethod(games, budget, goal, risk, trace, maxPerPrice);
   }
 }
 
