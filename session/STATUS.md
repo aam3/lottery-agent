@@ -1,5 +1,9 @@
 # Project Status
 
+## Session 1 — 2026-07-26 [build-recommendation-tool]
+Tested and refined the recommendation tool integration through live chat UI. Fixed agent conversation flow: tool description gating prevents premature bundling and risk inference (no system prompt rules needed). Added clickable choices block for multiple-choice questions. Clarified break-even semantics across tools. Ran Phase 5 calibration against real NJ data (90 combos) — risk floors validated, diversity factor designed and implemented (D=2, log-scaled per-price-tier cap), budgetProbe extracted into separate tool for 6-41x performance improvement on escalation cases. 12 edge case tests passing.
+- **Key areas:** `lib/recommender.ts`, `lib/toolDefs.ts`, `lib/tools.ts`, `lib/systemPrompt.ts`, `components/blocks/ChoicesBlock.tsx`
+
 ## Session 1 — 2026-07-05 [build-recommendation-tool]
 Created the `optimize_multi_ticket_bundle` tool — a recommendation engine with internal router dispatching to three methods: coverage (win anything), single-hit (moonshot), and full search (beam search over capped convolution DP with Pareto frontier and risk-floor selection). Fixed `get_marginal_odds` to use `prizes_remaining` denominator. Removed `calculate_multi_ticket_odds` (redundant). Switched all probability calculations to net values (prize - cost). Extensively revised system prompt: refined agent identity to be tool-driven, rewrote "How Players Think" and risk tolerance sections to establish budget → goal → risk progression, tightened reasoning protocol. Iterative tool description refinement to guide agent toward correct question sequencing.
 - **Key areas:** `lib/recommender.ts`, `lib/tools.ts`, `lib/toolDefs.ts`, `lib/systemPrompt.ts`, `plans/features/build-recommendation-tool/plan.md`
