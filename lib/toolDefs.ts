@@ -255,7 +255,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
           type: "string",
           enum: ["low", "mid", "high"],
           description:
-            "Determines the bundle composition. Different risk levels produce different game selections and ticket quantities — low favors games with high win rates, high concentrates on games with the best goal probability regardless of win rate. Must come from the user, not inferred — there is no neutral default.",
+            "Determines the bundle composition. Different risk levels produce different game selections and ticket quantities — low favors games with high win rates, high concentrates on games with the best goal probability regardless of win rate.",
         },
       },
       required: ["game_ids", "budget", "goal", "risk"],

@@ -96,8 +96,7 @@ const RESPONSE_GUIDELINES = `## Guiding Principles
 ## Output Format
 
 - Lead with the answer, then the short "why."
-- One question per response — never two. Only ask about missing tool input parameters that block the next tool call. If a tool can determine it, call the tool instead of asking. Never put a question in a text block — all questions go in a choices block.
-- Questions go after the analysis.
+- Questions go after the analysis. Never put a question in a text block — all questions go in a choices block.
 - Always show the game image with a recommendation — it is how users recognize and find tickets in the store.
 - Always end with a freshness note as the last line — when the data was last updated. Use get_freshness to get the timestamp. Nothing goes below this.
 

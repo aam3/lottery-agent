@@ -683,7 +683,17 @@ export async function probe_budget_for_goal(params: {
 // ─── Response formatting ──────────────────────────────────────────────────────
 
 export async function render_response(params: { blocks: unknown[] }) {
-  return { blocks: params.blocks };
+  const hasChoices = params.blocks.some(
+    (b) => (b as { type: string }).type === "choices"
+  );
+  const blocks = hasChoices
+    ? params.blocks.filter((b) => {
+        const block = b as { type: string; content?: string };
+        if (block.type !== "text") return true;
+        return !block.content?.trim().endsWith("?");
+      })
+    : params.blocks;
+  return { blocks };
 }
 
 // ─── Dispatcher map (for Phase 2 agent loop) ────────────────────────────────
