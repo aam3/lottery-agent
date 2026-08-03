@@ -397,6 +397,25 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Follow-up after state selection */}
+              {selectedState && (
+                <div className="space-y-3">
+                  <div
+                    className="border rounded-lg px-4 py-3"
+                    style={{ borderColor: T.divider, background: T.cardBg }}
+                  >
+                    <div style={{
+                      fontSize: T.sizeBody,
+                      color: T.textPrimary,
+                      fontFamily: T.font,
+                      lineHeight: T.lhBody,
+                    }}>
+                      How can I help you with {STATES.find((s) => s.abbr === selectedState)?.name} scratch-off games?
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {turns.map((turn, i) => (
                 <div key={i} className="space-y-3">
                   {/* User message */}
