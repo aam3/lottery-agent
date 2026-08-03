@@ -78,9 +78,27 @@ export default function BlockRenderer({
   choicesDisabled,
   dashboardGameIds,
 }: BlockRendererProps) {
+  // Enforce display order: content first, then interactive (choices/explore_options),
+  // then freshness ("data last updated") last. Preserves relative order within each group.
+  const content: Block[] = [];
+  const interactive: Block[] = [];
+  const freshness: Block[] = [];
+
+  for (const block of blocks) {
+    if (block.type === "choices" || block.type === "explore_options") {
+      interactive.push(block);
+    } else if (block.type === "text" && /data last updated/i.test(block.content)) {
+      freshness.push(block);
+    } else {
+      content.push(block);
+    }
+  }
+
+  const ordered = [...content, ...interactive, ...freshness];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {blocks.map((block, i) => {
+      {ordered.map((block, i) => {
         const rendered = renderBlock(block, onChoiceSelect, onExploreSelect, onExploreGame, onCompareGames, choicesDisabled, dashboardGameIds);
         if (!rendered) return null;
         return <div key={i}>{rendered}</div>;

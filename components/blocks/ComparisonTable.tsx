@@ -56,6 +56,10 @@ interface Props {
 }
 
 export default function ComparisonTable({ block, onCompare, dashboardGameIds }: Props) {
+  // Map each row to a game_id if available (game_ids array corresponds to rows in order)
+  const rowGameIds = block.game_ids && block.game_ids.length === block.rows.length
+    ? block.game_ids
+    : null;
   const { columns, rows } = block;
 
   // Auto-detect if agent included the row label as the first column
@@ -100,89 +104,94 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds }: 
                 {col.label}
               </th>
             ))}
+            {rowGameIds && onCompare && (
+              <th style={{
+                padding: "10px 14px",
+                borderBottom: `1px solid ${T.divider}`,
+                width: 1,
+              }} />
+            )}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, ri) => (
-            <tr key={ri}>
-              <td style={{
-                padding: "8px 14px",
-                borderBottom: ri < rows.length - 1 ? `1px solid ${T.divider}` : "none",
-                fontWeight: T.weightTitle,
-                color: T.textPrimary,
-                fontFamily: T.font,
-                whiteSpace: row.label.includes(" + ") ? "normal" : "nowrap",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <StrategyLabel label={row.label} priceColors={priceColors} />
-                  {row.price_tier != null && !/\(\$\d+\)/.test(row.label) && (
-                    <PricePill price={row.price_tier} color={priceColors[row.price_tier]} />
-                  )}
-                </div>
-              </td>
-              {row.values.map((v, ci) => (
-                <td key={ci} style={{
-                  padding: "8px 14px", textAlign: "center",
-                  color: T.textPrimary,
+          {rows.map((row, ri) => {
+            const gameId = rowGameIds ? rowGameIds[ri] : undefined;
+            const isOnDashboard = gameId != null && dashboardGameIds?.has(gameId);
+
+            return (
+              <tr key={ri}>
+                <td style={{
+                  padding: "8px 14px",
                   borderBottom: ri < rows.length - 1 ? `1px solid ${T.divider}` : "none",
+                  fontWeight: T.weightTitle,
+                  color: T.textPrimary,
                   fontFamily: T.font,
+                  whiteSpace: row.label.includes(" + ") ? "normal" : "nowrap",
                 }}>
-                  {v}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <StrategyLabel label={row.label} priceColors={priceColors} />
+                    {row.price_tier != null && !/\(\$\d+\)/.test(row.label) && (
+                      <PricePill price={row.price_tier} color={priceColors[row.price_tier]} />
+                    )}
+                  </div>
                 </td>
-              ))}
-            </tr>
-          ))}
+                {row.values.map((v, ci) => (
+                  <td key={ci} style={{
+                    padding: "8px 14px", textAlign: "center",
+                    color: T.textPrimary,
+                    borderBottom: ri < rows.length - 1 ? `1px solid ${T.divider}` : "none",
+                    fontFamily: T.font,
+                  }}>
+                    {v}
+                  </td>
+                ))}
+                {rowGameIds && onCompare && (
+                  <td style={{
+                    padding: "8px 14px",
+                    borderBottom: ri < rows.length - 1 ? `1px solid ${T.divider}` : "none",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {gameId != null && (
+                      isOnDashboard ? (
+                        <span style={{
+                          fontSize: T.sizeSmall,
+                          color: T.textTertiary,
+                          fontFamily: T.font,
+                        }}>
+                          ✓
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => onCompare([gameId])}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontSize: T.sizeSmall,
+                            fontWeight: T.weightLabel,
+                            fontFamily: T.font,
+                            color: T.accent,
+                            cursor: "pointer",
+                            textDecoration: "none",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = "underline";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.textDecoration = "none";
+                          }}
+                        >
+                          + Explore
+                        </button>
+                      )
+                    )}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
-      {onCompare && block.game_ids && block.game_ids.length > 0 && (() => {
-        const allOnDashboard = dashboardGameIds && block.game_ids!.every((id) => dashboardGameIds.has(id));
-        return (
-          <div style={{
-            display: "flex", justifyContent: "center",
-            padding: "12px 14px 14px",
-            borderTop: `1px solid ${T.divider}`,
-          }}>
-            {allOnDashboard ? (
-              <span style={{
-                fontSize: T.sizeSmall,
-                fontWeight: T.weightLabel,
-                fontFamily: T.font,
-                color: T.textTertiary,
-              }}>
-                ✓ On dashboard
-              </span>
-            ) : (
-              <button
-                onClick={() => onCompare(block.game_ids!)}
-                style={{
-                  padding: "8px 16px",
-                  fontSize: T.sizeSmall,
-                  fontWeight: T.weightLabel,
-                  fontFamily: T.font,
-                  color: T.accent,
-                  background: T.cardBg,
-                  border: `1px solid ${T.accent}`,
-                  borderRadius: T.pillRadius,
-                  cursor: "pointer",
-                  transition: "background 0.15s, color 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  const btn = e.currentTarget;
-                  btn.style.background = T.accent;
-                  btn.style.color = "#fff";
-                }}
-                onMouseLeave={(e) => {
-                  const btn = e.currentTarget;
-                  btn.style.background = T.cardBg;
-                  btn.style.color = T.accent;
-                }}
-              >
-                + Explore these games
-              </button>
-            )}
-          </div>
-        );
-      })()}
     </div>
   );
 }

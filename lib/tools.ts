@@ -778,25 +778,9 @@ export async function render_response(params: { blocks: unknown[] }) {
     };
   }
 
-  // Preserve the agent's block order, but pin two things:
-  // - Interactive blocks (choices, explore_options) → just above freshness
-  // - Freshness text ("data last updated") → always last
-  const freshness: unknown[] = [];
-  const interactive: unknown[] = [];
-  const content: unknown[] = [];
-
-  for (const b of params.blocks) {
-    const block = b as { type: string; content?: string };
-    if (block.type === "text" && /data last updated/i.test(block.content ?? "")) {
-      freshness.push(b);
-    } else if (block.type === "choices" || block.type === "explore_options") {
-      interactive.push(b);
-    } else {
-      content.push(b);
-    }
-  }
-
-  return { blocks: [...content, ...interactive, ...freshness] };
+  // Pass blocks through as-is. Display order (interactive before freshness,
+  // content before interactive) is enforced by the frontend BlockRenderer.
+  return { blocks: params.blocks as unknown[] };
 }
 
 // ─── Dispatcher map (for Phase 2 agent loop) ────────────────────────────────
