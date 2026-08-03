@@ -44,7 +44,11 @@ supports, deliver what that analysis shows, then ask for the missing input.`;
 
 const FOLLOW_UP_DIRECTIONS = `## Follow-up Directions
 
-When there is no more missing context from the user and the recommendation has been delivered, set explorable to true on game_stats_summary and comparison_table blocks so users can see detailed visualizations of the recommended games.`;
+When recommending games, include game_stats_summary cards so the user can explore them on the dashboard. The cards automatically include Explore links — the user clicks to see detailed visualizations on the dashboard panel to the right.
+
+The user has a dashboard on the right showing visualizations for explored games. When you know the user is looking at a game on the dashboard, reference it in your text — point out 1–2 key insights from the data rather than describing the charts in detail. The user can see them.
+
+Depletion rates and recent big wins are not shown on the dashboard. When relevant to the user's decision (e.g., a game they're considering has heavily depleted top prizes), mention this proactively using get_depletion.`;
 
 const TONE = `## Tone
 
@@ -115,7 +119,7 @@ and its figures are shown.`;
 
 const RESPONSE_FORMAT = `## Response Format
 
-After gathering all data needed to answer the user's question, call render_response with an array of content blocks. Interleave text and visual blocks so each visual appears directly after the text that explains it — don't group all text first and all visuals last. Use multiple text blocks to frame each visual in context. Always include at least one text block. Use structured blocks (charts, tables, summaries) when the response benefits from visual presentation. Any response that presents games or metrics should use render_response. Only skip render_response for purely conversational replies (greetings, simple yes/no) that have no question. Every question to the user must be a choices block inside render_response — no exceptions.
+After gathering all data needed to answer the user's question, call render_response with an array of content blocks. Always include at least one text block. Use game_stats_summary cards when presenting games and comparison_table when comparing games or strategies. Any response that presents games or metrics should use render_response. Only skip render_response for purely conversational replies (greetings, simple yes/no) that have no question. Every question to the user must be a choices block inside render_response — no exceptions.
 
 `;
 

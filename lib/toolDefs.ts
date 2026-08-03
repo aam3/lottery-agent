@@ -290,9 +290,9 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   // ─── Explore tools ──────────────────────────────────────────────────────
 
   {
-    name: "build_game_profile",
+    name: "build_game_card",
     description:
-      "Detailed visual profile of a single game — stats summary, odds chart, prize depletion, and recent big wins. Use when the user wants to see a game in detail. Not for comparing games — use build_game_comparison for that.",
+      "Compact summary card for a game — game name, image, and key metrics (Price, Top Prize, Win Rate, ROI). Use when presenting a game recommendation in conversation. The card includes an Explore link so the user can view detailed visuals on the dashboard. Does NOT return charts or visualizations — those are on the dashboard.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -307,36 +307,6 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
         game_number: {
           type: "string",
           description: "State-assigned game number (e.g. '01973'). Use with state as an alternative to game_id.",
-        },
-      },
-      required: [],
-    },
-  },
-
-  {
-    name: "build_game_comparison",
-    description:
-      "Side-by-side visual comparison of 2–4 games — metrics table, odds chart, and outcome breakdown. Use when the user wants to compare games visually. Not for a single game — use build_game_profile for that.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        game_ids: {
-          type: "array",
-          items: { type: "integer" },
-          minItems: 2,
-          maxItems: 4,
-          description: "Internal game IDs from a prior recommendation result or query_games.",
-        },
-        state: {
-          type: "string",
-          description: "Two-letter state abbreviation. Use with game_numbers as an alternative to game_ids.",
-        },
-        game_numbers: {
-          type: "array",
-          items: { type: "string" },
-          minItems: 2,
-          maxItems: 4,
-          description: "State-assigned game numbers. Use with state as an alternative to game_ids.",
         },
       },
       required: [],
@@ -378,6 +348,10 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   "A single game's key metrics displayed as a horizontal row with an image. Metrics are whichever values support the recommendation or requested game summary — you choose which to include and pre-format each as a label/value pair. Use when presenting one game's profile after a lookup or as part of a recommendation. Do NOT use for comparing multiple games side-by-side — use comparison_table for that.",
                 properties: {
                   type: { type: "string", const: "game_stats_summary" },
+                  game_id: {
+                    type: "integer",
+                    description: "Internal game ID from query_games. Required for the Explore link to work.",
+                  },
                   game_name: { type: "string" },
                   game_number: { type: "string" },
                   image_url: {
@@ -409,48 +383,8 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                       additionalProperties: false,
                     },
                   },
-                  explorable: {
-                    type: "boolean",
-                    description: "Set to true to show an Explore button on this card. Use when recommending games so the user can see detailed visualizations. Omit inside explore views.",
-                  },
                 },
-                required: ["type", "game_name", "game_number", "image_url", "metrics"],
-                additionalProperties: false,
-              },
-              {
-                title: "odds_chart",
-                description:
-                  "Line chart showing the probability of winning at least each dollar amount for 1–4 games. Use when summarizing the prize distribution of a game or comparing prize distributions across games. Requires marginal odds from get_marginal_odds at multiple dollar amounts; default thresholds are [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000]. The chart has hover tooltips — do not list the same probabilities in text. Do NOT use to answer general odds questions (e.g. 'what are my chances of winning') — use text with outcome probabilities for that. Do NOT use for a single probability at one threshold — state that in text instead.",
-                properties: {
-                  type: { type: "string", const: "odds_chart" },
-                  games: {
-                    type: "array",
-                    description: "1–4 games. Each needs marginal odds from get_marginal_odds at multiple thresholds.",
-                    minItems: 1,
-                    maxItems: 4,
-                    items: {
-                      type: "object",
-                      properties: {
-                        game_name: { type: "string" },
-                        game_number: { type: "string" },
-                        price_tier: { type: "number" },
-                        top_prize_value: {
-                          type: "number",
-                          description: "Top prize value. Used to cap thresholds in single-game mode.",
-                        },
-                        marginal_odds: {
-                          type: "object",
-                          description:
-                            "Map of dollar threshold (as string key) to probability. Keys: '0', '10', '50', '100', '500', '1000', '5000', '10000', '50000', '100000'. Values from get_marginal_odds.",
-                          additionalProperties: { type: "number" },
-                        },
-                      },
-                      required: ["game_name", "game_number", "price_tier", "top_prize_value", "marginal_odds"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["type", "games"],
+                required: ["type", "game_id", "game_name", "game_number", "image_url", "metrics"],
                 additionalProperties: false,
               },
               {
@@ -530,84 +464,6 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                 additionalProperties: false,
               },
               {
-                title: "depletion_bars",
-                description:
-                  "Three horizontal bars showing what percentage of prizes remain in high ($500+), mid ($50–$499), and low (under $50) bands for a single game. Data comes from get_depletion. Use when the user asks about prize availability or how much of a game's prize pool has been claimed — particularly relevant when the user cares about large prizes. One game per block — do NOT combine multiple games.",
-                properties: {
-                  type: { type: "string", const: "depletion_bars" },
-                  game_name: { type: "string" },
-                  game_number: { type: "string" },
-                  bands: {
-                    type: "array",
-                    description: "Three bands: High, Mid, Low.",
-                    minItems: 1,
-                    maxItems: 3,
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: {
-                          type: "string",
-                          description: "Band label: 'High', 'Mid', or 'Low'.",
-                        },
-                        range: {
-                          type: "string",
-                          description: "Dollar range description (e.g. '$500+', '$50 – $499', 'Under $50').",
-                        },
-                        pct: {
-                          type: "number",
-                          description: "Percentage of prizes remaining in this band (0–100).",
-                        },
-                      },
-                      required: ["name", "range", "pct"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["type", "game_name", "game_number", "bands"],
-                additionalProperties: false,
-              },
-              {
-                title: "risk_reward_scatter",
-                description:
-                  "Bubble chart plotting risk vs. reward for 2+ games across price tiers. Bubble size = avg cash prize, color = price tier. Data comes from get_risk_reward. ONLY use when games span multiple price tiers — the chart illustrates that higher-priced tickets carry more risk but offer higher potential reward. Games at the same price tier have identical risk, producing a useless vertical line. When all games share one price tier, use comparison_table instead. Do NOT use for a single game — describe risk/reward in text instead.",
-                properties: {
-                  type: { type: "string", const: "risk_reward_scatter" },
-                  games: {
-                    type: "array",
-                    description: "Games to plot. Need at least 2 for a meaningful scatter.",
-                    minItems: 2,
-                    items: {
-                      type: "object",
-                      properties: {
-                        game_name: { type: "string" },
-                        game_number: { type: "string" },
-                        price_tier: { type: "number" },
-                        risk_scaled: {
-                          type: "number",
-                          description: "Risk score (0–10 scale) from get_risk_reward.",
-                        },
-                        reward_scaled: {
-                          type: "number",
-                          description: "Reward score (0–10 scale) from get_risk_reward.",
-                        },
-                        avg_cash_prize: {
-                          type: "number",
-                          description: "Average cash prize in dollars. Drives bubble size.",
-                        },
-                        top_prize_value: {
-                          type: "number",
-                          description: "Top prize value for tooltip display.",
-                        },
-                      },
-                      required: ["game_name", "game_number", "price_tier", "risk_scaled", "reward_scaled", "avg_cash_prize", "top_prize_value"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["type", "games"],
-                additionalProperties: false,
-              },
-              {
                 title: "explore_options",
                 description:
                   "Horizontal clickable suggestion pills for navigating within an explore view. Auto-generated by explore tools — do NOT construct this block manually.",
@@ -620,57 +476,6 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   },
                 },
                 required: ["type", "options"],
-                additionalProperties: false,
-              },
-              {
-                title: "recent_big_wins",
-                description:
-                  "Table of recently claimed prizes >= $10,000 for a game. Auto-generated by build_game_profile — do NOT construct manually.",
-                properties: {
-                  type: { type: "string", const: "recent_big_wins" },
-                  game_name: { type: "string" },
-                  game_number: { type: "string" },
-                  wins: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        date: { type: "string", description: "Formatted date string." },
-                        prize: { type: "string", description: "Formatted prize amount." },
-                        claimed: { type: "integer", description: "Number of prizes claimed." },
-                      },
-                      required: ["date", "prize", "claimed"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["type", "game_name", "game_number", "wins"],
-                additionalProperties: false,
-              },
-              {
-                title: "outcome_bars",
-                description:
-                  "Stacked horizontal bars showing lose/break-even/win probabilities per game. Auto-generated by build_game_comparison — do NOT construct manually.",
-                properties: {
-                  type: { type: "string", const: "outcome_bars" },
-                  games: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        game_name: { type: "string" },
-                        game_number: { type: "string" },
-                        price_tier: { type: "number" },
-                        p_losing: { type: "number" },
-                        p_breaking_even: { type: "number" },
-                        p_winning_cash: { type: "number" },
-                      },
-                      required: ["game_name", "game_number", "price_tier", "p_losing", "p_breaking_even", "p_winning_cash"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["type", "games"],
                 additionalProperties: false,
               },
             ],

@@ -10,11 +10,13 @@ import type { GameStatsSummaryBlock } from "./types";
 
 interface Props {
   block: GameStatsSummaryBlock;
-  onExplore?: (gameName: string, gameNumber: string) => void;
+  onExplore?: (gameName: string, gameNumber: string, gameId?: number) => void;
   disabled?: boolean;
+  dashboardGameIds?: Set<number>;
 }
 
-export default function GameStatsSummary({ block, onExplore, disabled }: Props) {
+export default function GameStatsSummary({ block, onExplore, disabled, dashboardGameIds }: Props) {
+  const isOnDashboard = block.game_id != null && dashboardGameIds?.has(block.game_id);
   return (
     <div style={{
       padding: "16px 28px",
@@ -76,30 +78,44 @@ export default function GameStatsSummary({ block, onExplore, disabled }: Props) 
               (#{block.game_number})
             </span>
           </div>
-          {block.explorable && onExplore && !disabled && (
-            <button
-              onClick={() => onExplore(block.game_name, block.game_number)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                fontSize: T.sizeSmall,
-                fontWeight: T.weightLabel,
-                fontFamily: T.font,
-                color: T.accent,
-                cursor: "pointer",
-                textDecoration: "none",
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = "underline";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = "none";
-              }}
-            >
-              Explore →
-            </button>
+          {onExplore && (
+            isOnDashboard ? (
+              <span
+                style={{
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
+                  fontFamily: T.font,
+                  color: T.textTertiary,
+                  flexShrink: 0,
+                }}
+              >
+                ✓
+              </span>
+            ) : (
+              <button
+                onClick={() => onExplore(block.game_name, block.game_number, block.game_id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
+                  fontFamily: T.font,
+                  color: T.accent,
+                  cursor: "pointer",
+                  textDecoration: "none",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = "underline";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = "none";
+                }}
+              >
+                + Explore
+              </button>
+            )
           )}
         </div>
         {/* Metrics row */}

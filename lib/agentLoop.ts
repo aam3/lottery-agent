@@ -46,6 +46,7 @@ export async function runAgentLoop(params: {
   messages: Anthropic.MessageParam[];
   model?: string;
   maxIterations?: number;
+  dashboardContext?: string;
 }): Promise<{
   steps: ToolStep[];
   answer?: string;
@@ -55,6 +56,15 @@ export async function runAgentLoop(params: {
   const model = params.model ?? DEFAULT_MODEL;
   const maxIterations = params.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   const messages: Anthropic.MessageParam[] = [...params.messages];
+
+  // Build system blocks: cached prompt + optional dashboard context (not cached)
+  const systemBlocks: Anthropic.TextBlockParam[] = [...cachedSystem];
+  if (params.dashboardContext) {
+    systemBlocks.push({
+      type: "text",
+      text: params.dashboardContext,
+    });
+  }
   const steps: ToolStep[] = [];
   let capturedBlocks: Block[] | undefined;
   const usage: UsageSummary = {
@@ -69,7 +79,7 @@ export async function runAgentLoop(params: {
     const response = await anthropic.messages.create({
       model,
       max_tokens: 4096,
-      system: cachedSystem,
+      system: systemBlocks,
       tools: cachedTools,
       messages,
     });

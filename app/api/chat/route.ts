@@ -16,9 +16,11 @@ export async function POST(request: Request) {
   }
 
   // Validate messages array
-  const { messages, conversationId } = body as {
+  const { messages, conversationId, dashboardGames, toolHint } = body as {
     messages?: Array<{ role: string; content: string }>;
     conversationId?: string;
+    dashboardGames?: Array<{ name: string; number: string; id: number }>;
+    toolHint?: { visual: string; toolName: string; gameIds: number[] };
   };
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -67,10 +69,30 @@ export async function POST(request: Request) {
     ? lastContent.slice(stateMatch[0].length)
     : lastContent;
 
+  // Build dashboard context for agent awareness
+  let dashboardContext: string | undefined;
+  if (dashboardGames && dashboardGames.length > 0) {
+    const gameList = dashboardGames
+      .map((g) => `${g.name} (#${g.number})`)
+      .join(", ");
+    dashboardContext = `The user's dashboard currently shows: ${gameList}.`;
+
+    if (toolHint) {
+      const visualLabels: Record<string, string> = {
+        stats_table: "stats table",
+        odds_chart: "odds chart",
+        outcome_bars: "outcome bars",
+        scatter: "risk vs reward scatter",
+      };
+      const visualLabel = visualLabels[toolHint.visual] ?? toolHint.visual;
+      dashboardContext += ` The user is asking about the ${visualLabel} on their dashboard. Use \`${toolHint.toolName}\` with game IDs [${toolHint.gameIds.join(", ")}] to answer their question.`;
+    }
+  }
+
   // Run the agent loop
   const startTime = Date.now();
   try {
-    const result = await runAgentLoop({ messages: apiMessages });
+    const result = await runAgentLoop({ messages: apiMessages, dashboardContext });
 
     // Write trace (fire-and-forget — don't block the response)
     const timestamp = new Date().toISOString();

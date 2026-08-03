@@ -16,28 +16,30 @@ interface BlockRendererProps {
   blocks: Block[];
   onChoiceSelect?: (choice: string, prompt: string) => void;
   onExploreSelect?: (option: string) => void;
-  onExploreGame?: (gameName: string, gameNumber: string) => void;
+  onExploreGame?: (gameName: string, gameNumber: string, gameId?: number) => void;
   onCompareGames?: (gameIds: number[]) => void;
   choicesDisabled?: boolean;
+  dashboardGameIds?: Set<number>;
 }
 
 function renderBlock(
   block: Block,
   onChoiceSelect?: (choice: string, prompt: string) => void,
   onExploreSelect?: (option: string) => void,
-  onExploreGame?: (gameName: string, gameNumber: string) => void,
+  onExploreGame?: (gameName: string, gameNumber: string, gameId?: number) => void,
   onCompareGames?: (gameIds: number[]) => void,
   choicesDisabled?: boolean,
+  dashboardGameIds?: Set<number>,
 ) {
   switch (block.type) {
     case "text":
       return <TextBlock block={block} />;
     case "game_stats_summary":
-      return <GameStatsSummary block={block} onExplore={onExploreGame} disabled={choicesDisabled} />;
+      return <GameStatsSummary block={block} onExplore={onExploreGame} disabled={choicesDisabled} dashboardGameIds={dashboardGameIds} />;
     case "odds_chart":
       return <OddsChart block={block} />;
     case "comparison_table":
-      return <ComparisonTable block={block} onCompare={onCompareGames} disabled={choicesDisabled} />;
+      return <ComparisonTable block={block} onCompare={onCompareGames} dashboardGameIds={dashboardGameIds} />;
     case "depletion_bars":
       return <DepletionBars block={block} />;
     case "risk_reward_scatter":
@@ -74,11 +76,12 @@ export default function BlockRenderer({
   onExploreGame,
   onCompareGames,
   choicesDisabled,
+  dashboardGameIds,
 }: BlockRendererProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {blocks.map((block, i) => {
-        const rendered = renderBlock(block, onChoiceSelect, onExploreSelect, onExploreGame, onCompareGames, choicesDisabled);
+        const rendered = renderBlock(block, onChoiceSelect, onExploreSelect, onExploreGame, onCompareGames, choicesDisabled, dashboardGameIds);
         if (!rendered) return null;
         return <div key={i}>{rendered}</div>;
       })}

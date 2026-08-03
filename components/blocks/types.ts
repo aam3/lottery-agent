@@ -7,6 +7,7 @@ export interface GameStatsSummaryBlock {
   type: "game_stats_summary";
   game_name: string;
   game_number: string;
+  game_id?: number;
   image_url: string | null;
   metrics: { label: string; value: string; suffix?: string }[];
   explorable?: boolean;

@@ -52,9 +52,10 @@ interface Props {
   block: ComparisonTableBlock;
   onCompare?: (gameIds: number[]) => void;
   disabled?: boolean;
+  dashboardGameIds?: Set<number>;
 }
 
-export default function ComparisonTable({ block, onCompare, disabled }: Props) {
+export default function ComparisonTable({ block, onCompare, dashboardGameIds }: Props) {
   const { columns, rows } = block;
 
   // Auto-detect if agent included the row label as the first column
@@ -133,41 +134,55 @@ export default function ComparisonTable({ block, onCompare, disabled }: Props) {
           ))}
         </tbody>
       </table>
-      {block.explorable && onCompare && block.game_ids && !disabled && (
-        <div style={{
-          display: "flex", justifyContent: "center",
-          padding: "12px 14px 14px",
-          borderTop: `1px solid ${T.divider}`,
-        }}>
-          <button
-            onClick={() => onCompare(block.game_ids!)}
-            style={{
-              padding: "8px 16px",
-              fontSize: T.sizeSmall,
-              fontWeight: T.weightLabel,
-              fontFamily: T.font,
-              color: T.accent,
-              background: T.cardBg,
-              border: `1px solid ${T.accent}`,
-              borderRadius: T.pillRadius,
-              cursor: "pointer",
-              transition: "background 0.15s, color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              const btn = e.currentTarget;
-              btn.style.background = T.accent;
-              btn.style.color = "#fff";
-            }}
-            onMouseLeave={(e) => {
-              const btn = e.currentTarget;
-              btn.style.background = T.cardBg;
-              btn.style.color = T.accent;
-            }}
-          >
-            Compare in detail →
-          </button>
-        </div>
-      )}
+      {onCompare && block.game_ids && block.game_ids.length > 0 && (() => {
+        const allOnDashboard = dashboardGameIds && block.game_ids!.every((id) => dashboardGameIds.has(id));
+        return (
+          <div style={{
+            display: "flex", justifyContent: "center",
+            padding: "12px 14px 14px",
+            borderTop: `1px solid ${T.divider}`,
+          }}>
+            {allOnDashboard ? (
+              <span style={{
+                fontSize: T.sizeSmall,
+                fontWeight: T.weightLabel,
+                fontFamily: T.font,
+                color: T.textTertiary,
+              }}>
+                ✓ On dashboard
+              </span>
+            ) : (
+              <button
+                onClick={() => onCompare(block.game_ids!)}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
+                  fontFamily: T.font,
+                  color: T.accent,
+                  background: T.cardBg,
+                  border: `1px solid ${T.accent}`,
+                  borderRadius: T.pillRadius,
+                  cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  const btn = e.currentTarget;
+                  btn.style.background = T.accent;
+                  btn.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  const btn = e.currentTarget;
+                  btn.style.background = T.cardBg;
+                  btn.style.color = T.accent;
+                }}
+              >
+                + Explore these games
+              </button>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
