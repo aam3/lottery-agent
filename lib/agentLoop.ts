@@ -40,7 +40,7 @@ const cachedTools = toolDefinitions.map((tool, i) =>
 // ─── Agent loop ──────────────────────────────────────────────────────────────
 
 const DEFAULT_MODEL = process.env.CLAUDE_MODEL ?? "claude-sonnet-4-5";
-const DEFAULT_MAX_ITERATIONS = 10;
+const DEFAULT_MAX_ITERATIONS = 15;
 
 export async function runAgentLoop(params: {
   messages: Anthropic.MessageParam[];

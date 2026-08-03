@@ -48,7 +48,13 @@ function StrategyLabel({ label, priceColors }: { label: string; priceColors: Rec
   );
 }
 
-export default function ComparisonTable({ block }: { block: ComparisonTableBlock }) {
+interface Props {
+  block: ComparisonTableBlock;
+  onCompare?: (gameIds: number[]) => void;
+  disabled?: boolean;
+}
+
+export default function ComparisonTable({ block, onCompare, disabled }: Props) {
   const { columns, rows } = block;
 
   // Auto-detect if agent included the row label as the first column
@@ -127,6 +133,41 @@ export default function ComparisonTable({ block }: { block: ComparisonTableBlock
           ))}
         </tbody>
       </table>
+      {block.explorable && onCompare && block.game_ids && !disabled && (
+        <div style={{
+          display: "flex", justifyContent: "center",
+          padding: "12px 14px 14px",
+          borderTop: `1px solid ${T.divider}`,
+        }}>
+          <button
+            onClick={() => onCompare(block.game_ids!)}
+            style={{
+              padding: "8px 16px",
+              fontSize: T.sizeSmall,
+              fontWeight: T.weightLabel,
+              fontFamily: T.font,
+              color: T.accent,
+              background: T.cardBg,
+              border: `1px solid ${T.accent}`,
+              borderRadius: T.pillRadius,
+              cursor: "pointer",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              const btn = e.currentTarget;
+              btn.style.background = T.accent;
+              btn.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              const btn = e.currentTarget;
+              btn.style.background = T.cardBg;
+              btn.style.color = T.accent;
+            }}
+          >
+            Compare in detail →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

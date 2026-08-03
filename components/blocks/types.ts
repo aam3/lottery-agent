@@ -9,6 +9,7 @@ export interface GameStatsSummaryBlock {
   game_number: string;
   image_url: string | null;
   metrics: { label: string; value: string; suffix?: string }[];
+  explorable?: boolean;
 }
 
 export interface OddsChartBlock {
@@ -26,6 +27,8 @@ export interface ComparisonTableBlock {
   type: "comparison_table";
   columns: { label: string }[];
   rows: { label: string; price_tier?: number; values: string[] }[];
+  explorable?: boolean;
+  game_ids?: number[];
 }
 
 export interface DepletionBarsBlock {
@@ -54,6 +57,30 @@ export interface ChoicesBlock {
   options: string[];
 }
 
+export interface ExploreOptionsBlock {
+  type: "explore_options";
+  options: string[];
+}
+
+export interface RecentBigWinsBlock {
+  type: "recent_big_wins";
+  game_name: string;
+  game_number: string;
+  wins: { date: string; prize: string; claimed: number }[];
+}
+
+export interface OutcomeBarsBlock {
+  type: "outcome_bars";
+  games: {
+    game_name: string;
+    game_number: string;
+    price_tier: number;
+    p_losing: number;
+    p_breaking_even: number;
+    p_winning_cash: number;
+  }[];
+}
+
 export type Block =
   | TextBlock
   | GameStatsSummaryBlock
@@ -61,4 +88,7 @@ export type Block =
   | ComparisonTableBlock
   | DepletionBarsBlock
   | RiskRewardScatterBlock
-  | ChoicesBlock;
+  | ChoicesBlock
+  | ExploreOptionsBlock
+  | RecentBigWinsBlock
+  | OutcomeBarsBlock;

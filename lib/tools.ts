@@ -680,20 +680,430 @@ export async function probe_budget_for_goal(params: {
   }
 }
 
+// ─── Explore tools ───────────────────────────────────────────────────────────
+
+const DEFAULT_THRESHOLDS = [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000];
+
+export async function build_game_profile(params: {
+  game_id?: number;
+  state?: string;
+  game_number?: string;
+}) {
+  let { game_id } = params;
+  const { state, game_number } = params;
+
+  // Resolve game_id from state + game_number if not provided directly
+  if (!game_id && state && game_number) {
+    const lookup = await sql`
+      SELECT game_id FROM games
+      WHERE state = ${state.toUpperCase()} AND game_number = ${game_number}
+    `;
+    if (lookup.length === 0) {
+      return { error: `No game found for state ${state}, game_number ${game_number}` };
+    }
+    game_id = lookup[0].game_id as number;
+  }
+
+  if (!game_id) {
+    return { error: "Provide game_id, or state + game_number." };
+  }
+
+  try {
+    // Query game metadata + outcome probabilities + depletion
+    const metricRows = await sql`
+      SELECT gm.game_id, g.game_name, g.game_number, g.price_tier, g.image_url,
+             gm.p_losing, gm.p_breaking_even, gm.p_winning_cash, gm.roi,
+             gm.depletion_high, gm.depletion_mid, gm.depletion_low, gm.computed_at
+      FROM game_metrics gm
+      JOIN games g ON g.game_id = gm.game_id
+      WHERE gm.game_id = ${game_id}
+    `;
+    if (metricRows.length === 0) {
+      return { error: `No metrics found for game_id: ${game_id}` };
+    }
+    const game = metricRows[0];
+
+    // Query top prize
+    const topPrizeRows = await sql`
+      SELECT p.prize_value, p.prizes_remaining, p.total_tickets
+      FROM prizes p
+      WHERE p.game_id = ${game_id}
+        AND p.prize_value IS NOT NULL
+        AND p.total_tickets IS NOT NULL
+      ORDER BY p.prize_value DESC NULLS LAST
+    `;
+
+    // Compute top prize info
+    let topPrizeValue = 0;
+    let topPrizesRemaining: number | null = null;
+    let totalTicketsSum = 0;
+    for (const r of topPrizeRows) {
+      totalTicketsSum += r.total_tickets as number;
+      if (topPrizeValue === 0) {
+        topPrizeValue = r.prize_value as number;
+        topPrizesRemaining = r.prizes_remaining as number;
+      }
+    }
+
+    // Compute marginal odds for all default thresholds
+    const prizeRows = await sql`
+      SELECT p.prize_value, p.prizes_remaining
+      FROM prizes p
+      WHERE p.game_id = ${game_id}
+      ORDER BY p.prize_value DESC NULLS LAST
+    `;
+
+    let totalRemaining = 0;
+    const tiers: { prize_value: number | null; prizes_remaining: number }[] = [];
+    for (const r of prizeRows) {
+      const remaining = r.prizes_remaining as number;
+      totalRemaining += remaining;
+      tiers.push({
+        prize_value: r.prize_value as number | null,
+        prizes_remaining: remaining,
+      });
+    }
+
+    const priceTier = game.price_tier as number;
+    const marginalOdds: Record<string, number> = {};
+    for (const t of DEFAULT_THRESHOLDS) {
+      if (totalRemaining === 0) {
+        marginalOdds[String(t)] = 0;
+        continue;
+      }
+      const qualifying = tiers
+        .filter(
+          (tier) =>
+            tier.prize_value !== null &&
+            tier.prizes_remaining > 0 &&
+            (tier.prize_value - priceTier) >= t
+        )
+        .reduce((sum, tier) => sum + tier.prizes_remaining, 0);
+      marginalOdds[String(t)] = qualifying / totalRemaining;
+    }
+
+    // Format top prize display
+    const formatPrize = (n: number): string => {
+      if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
+      if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+      return `$${n}`;
+    };
+
+    // Format overall odds
+    const pLosing = game.p_losing as number;
+    const overallOdds = `${((1 - pLosing) * 100).toFixed(1)}%`;
+
+    // Format ROI
+    const roi = game.roi as number;
+    const roiStr = roi >= 0 ? `+${(roi * 100).toFixed(1)}%` : `${(roi * 100).toFixed(1)}%`;
+
+    // Build depletion bars
+    const depletionBands: { name: string; range: string; pct: number }[] = [];
+    const depHigh = game.depletion_high as number | null;
+    const depMid = game.depletion_mid as number | null;
+    const depLow = game.depletion_low as number | null;
+    if (depHigh !== null) depletionBands.push({ name: "High", range: "$500+", pct: Math.round(depHigh) });
+    if (depMid !== null) depletionBands.push({ name: "Mid", range: "$50 – $499", pct: Math.round(depMid) });
+    if (depLow !== null) depletionBands.push({ name: "Low", range: "Under $50", pct: Math.round(depLow) });
+
+    // Recent big wins — requires data pipeline (separate repo) to populate.
+    // Component handles empty state. Wire up when pipeline is ready.
+    const recentBigWins: { date: string; prize: string; claimed: number }[] = [];
+
+    // Assemble blocks
+    const blocks: unknown[] = [
+      {
+        type: "game_stats_summary",
+        game_name: game.game_name,
+        game_number: game.game_number,
+        image_url: game.image_url ?? null,
+        metrics: [
+          { label: "Price", value: `$${priceTier}` },
+          { label: "Top Prize", value: formatPrize(topPrizeValue), suffix: topPrizesRemaining !== null ? `(${topPrizesRemaining} left)` : undefined },
+          { label: "Win Rate", value: overallOdds },
+          { label: "ROI", value: roiStr },
+        ],
+      },
+      {
+        type: "odds_chart",
+        games: [
+          {
+            game_name: game.game_name as string,
+            game_number: game.game_number as string,
+            price_tier: priceTier,
+            top_prize_value: topPrizeValue,
+            marginal_odds: marginalOdds,
+          },
+        ],
+      },
+    ];
+
+    // Add depletion bars if data exists
+    if (depletionBands.length > 0) {
+      blocks.push({
+        type: "depletion_bars",
+        game_name: game.game_name,
+        game_number: game.game_number,
+        bands: depletionBands,
+      });
+    }
+
+    // Add recent big wins
+    blocks.push({
+      type: "recent_big_wins",
+      game_name: game.game_name,
+      game_number: game.game_number,
+      wins: recentBigWins,
+    });
+
+    blocks.push({
+      type: "explore_options",
+      options: ["I'm all set"],
+    });
+
+    return { blocks };
+  } catch (err) {
+    return { error: `Database error: ${(err as Error).message}` };
+  }
+}
+
+export async function build_game_comparison(params: {
+  game_ids?: number[];
+  state?: string;
+  game_numbers?: string[];
+}) {
+  let game_ids = params.game_ids;
+  const { state, game_numbers } = params;
+
+  // Resolve game_ids from state + game_numbers if not provided directly
+  if ((!game_ids || game_ids.length === 0) && state && game_numbers && game_numbers.length >= 2) {
+    const lookup = await sql`
+      SELECT game_id FROM games
+      WHERE state = ${state.toUpperCase()} AND game_number = ANY(${game_numbers})
+    `;
+    if (lookup.length < 2) {
+      return { error: `Not enough games found for state ${state} with those game numbers.` };
+    }
+    game_ids = lookup.map((r) => r.game_id as number);
+  }
+
+  if (!game_ids || game_ids.length < 2) {
+    return { error: "Provide at least 2 game_ids, or state + game_numbers." };
+  }
+  if (game_ids.length > 4) {
+    return { error: "Compare up to 4 games at a time." };
+  }
+
+  try {
+    // Query game metadata + outcome probabilities
+    const metricRows = await sql`
+      SELECT gm.game_id, g.game_name, g.game_number, g.price_tier,
+             gm.p_losing, gm.p_breaking_even, gm.p_winning_cash, gm.roi
+      FROM game_metrics gm
+      JOIN games g ON g.game_id = gm.game_id
+      WHERE gm.game_id = ANY(${game_ids})
+    `;
+    if (metricRows.length < 2) {
+      return { error: "Not enough games found for comparison." };
+    }
+
+    // Query all prize tiers for marginal odds + top prize computation
+    const prizeRows = await sql`
+      SELECT p.game_id, p.prize_value, p.prizes_remaining, p.total_tickets
+      FROM prizes p
+      WHERE p.game_id = ANY(${game_ids})
+      ORDER BY p.game_id, p.prize_value DESC NULLS LAST
+    `;
+
+    // Group prize data by game
+    const prizesByGame = new Map<number, {
+      tiers: { prize_value: number | null; prizes_remaining: number }[];
+      totalRemaining: number;
+      topPrizeValue: number;
+      topPrizesRemaining: number | null;
+      totalTicketsSum: number;
+    }>();
+
+    for (const r of prizeRows) {
+      const gid = r.game_id as number;
+      const remaining = r.prizes_remaining as number;
+      if (!prizesByGame.has(gid)) {
+        prizesByGame.set(gid, {
+          tiers: [],
+          totalRemaining: 0,
+          topPrizeValue: 0,
+          topPrizesRemaining: null,
+          totalTicketsSum: 0,
+        });
+      }
+      const gData = prizesByGame.get(gid)!;
+      gData.totalRemaining += remaining;
+      gData.tiers.push({
+        prize_value: r.prize_value as number | null,
+        prizes_remaining: remaining,
+      });
+      if (r.total_tickets) gData.totalTicketsSum += r.total_tickets as number;
+      if (gData.topPrizeValue === 0 && r.prize_value !== null) {
+        gData.topPrizeValue = r.prize_value as number;
+        gData.topPrizesRemaining = remaining;
+      }
+    }
+
+    const formatPrize = (n: number): string => {
+      if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
+      if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+      return `$${n}`;
+    };
+
+    // Build odds chart games and comparison table rows
+    const oddsChartGames: {
+      game_name: string; game_number: string; price_tier: number;
+      top_prize_value: number; marginal_odds: Record<string, number>;
+    }[] = [];
+
+    const tableRows: {
+      label: string; price_tier: number; values: string[];
+    }[] = [];
+
+    for (const game of metricRows) {
+      const gid = game.game_id as number;
+      const priceTier = game.price_tier as number;
+      const pData = prizesByGame.get(gid);
+      if (!pData) continue;
+
+      // Compute marginal odds
+      const marginalOdds: Record<string, number> = {};
+      for (const t of DEFAULT_THRESHOLDS) {
+        if (pData.totalRemaining === 0) {
+          marginalOdds[String(t)] = 0;
+          continue;
+        }
+        const qualifying = pData.tiers
+          .filter(
+            (tier) =>
+              tier.prize_value !== null &&
+              tier.prizes_remaining > 0 &&
+              (tier.prize_value - priceTier) >= t
+          )
+          .reduce((sum, tier) => sum + tier.prizes_remaining, 0);
+        marginalOdds[String(t)] = qualifying / pData.totalRemaining;
+      }
+
+      oddsChartGames.push({
+        game_name: game.game_name as string,
+        game_number: game.game_number as string,
+        price_tier: priceTier,
+        top_prize_value: pData.topPrizeValue,
+        marginal_odds: marginalOdds,
+      });
+
+      const pLosing = game.p_losing as number;
+      const roi = game.roi as number;
+      const odds500 = marginalOdds["500"] ?? 0;
+
+      tableRows.push({
+        label: `${game.game_name} (#${game.game_number})`,
+        price_tier: priceTier,
+        values: [
+          formatPrize(pData.topPrizeValue),
+          `${((1 - pLosing) * 100).toFixed(1)}%`,
+          odds500 > 0 ? `${(odds500 * 100).toFixed(3)}%` : "—",
+          roi >= 0 ? `+${(roi * 100).toFixed(1)}%` : `${(roi * 100).toFixed(1)}%`,
+        ],
+      });
+    }
+
+    // Build explore drill-down choices
+    const drillDownOptions: string[] = [];
+    for (const game of metricRows) {
+      drillDownOptions.push(`Explore ${game.game_name} (#${game.game_number})`);
+    }
+    drillDownOptions.push("I'm all set");
+
+    // Build outcome bars data
+    const outcomeBarsGames = metricRows.map((game) => ({
+      game_name: game.game_name as string,
+      game_number: game.game_number as string,
+      price_tier: game.price_tier as number,
+      p_losing: game.p_losing as number,
+      p_breaking_even: game.p_breaking_even as number,
+      p_winning_cash: game.p_winning_cash as number,
+    }));
+
+    const blocks = [
+      {
+        type: "comparison_table",
+        columns: [
+          { label: "Top Prize" },
+          { label: "Win Rate" },
+          { label: "Odds $500+" },
+          { label: "ROI" },
+        ],
+        rows: tableRows,
+      },
+      {
+        type: "odds_chart",
+        games: oddsChartGames,
+      },
+      {
+        type: "outcome_bars",
+        games: outcomeBarsGames,
+      },
+      {
+        type: "explore_options",
+        options: drillDownOptions,
+      },
+    ];
+
+    return { blocks };
+  } catch (err) {
+    return { error: `Database error: ${(err as Error).message}` };
+  }
+}
+
 // ─── Response formatting ──────────────────────────────────────────────────────
 
 export async function render_response(params: { blocks: unknown[] }) {
   const hasChoices = params.blocks.some(
     (b) => (b as { type: string }).type === "choices"
   );
-  const blocks = hasChoices
+  const hasExploreOptions = params.blocks.some(
+    (b) => (b as { type: string }).type === "explore_options"
+  );
+
+  if (!hasChoices && !hasExploreOptions) {
+    return {
+      error:
+        "Response has no user interaction. Include a choices block or pass through explore_options from an explore tool.",
+    };
+  }
+
+  let filtered = hasChoices
     ? params.blocks.filter((b) => {
         const block = b as { type: string; content?: string };
         if (block.type !== "text") return true;
         return !block.content?.trim().endsWith("?");
       })
-    : params.blocks;
-  return { blocks };
+    : [...params.blocks];
+
+  // Reorder: freshness text goes to the very end (footer),
+  // interactive blocks (choices, explore_options) go just before it.
+  const freshness: unknown[] = [];
+  const interactive: unknown[] = [];
+  const content: unknown[] = [];
+
+  for (const b of filtered) {
+    const block = b as { type: string; content?: string };
+    if (block.type === "text" && /data last updated/i.test(block.content ?? "")) {
+      freshness.push(b);
+    } else if (block.type === "choices" || block.type === "explore_options") {
+      interactive.push(b);
+    } else {
+      content.push(b);
+    }
+  }
+
+  return { blocks: [...content, ...interactive, ...freshness] };
 }
 
 // ─── Dispatcher map (for Phase 2 agent loop) ────────────────────────────────
@@ -712,5 +1122,7 @@ export const toolHandlers: Record<string, (params: any) => Promise<unknown>> = {
   get_top_prizes,
   optimize_multi_ticket_bundle,
   probe_budget_for_goal,
+  build_game_profile,
+  build_game_comparison,
   render_response,
 };

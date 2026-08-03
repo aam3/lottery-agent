@@ -8,7 +8,13 @@ const cardBorder = {
 };
 import type { GameStatsSummaryBlock } from "./types";
 
-export default function GameStatsSummary({ block }: { block: GameStatsSummaryBlock }) {
+interface Props {
+  block: GameStatsSummaryBlock;
+  onExplore?: (gameName: string, gameNumber: string) => void;
+  disabled?: boolean;
+}
+
+export default function GameStatsSummary({ block, onExplore, disabled }: Props) {
   return (
     <div style={{
       padding: "16px 28px",
@@ -49,21 +55,52 @@ export default function GameStatsSummary({ block }: { block: GameStatsSummaryBlo
       )}
       {/* Right side: game name on top, metrics below */}
       <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", gap: 8 }}>
-        {/* Game name */}
+        {/* Game name + explore link */}
         <div style={{
-          fontSize: T.sizeTitle,
-          fontWeight: T.weightTitle,
-          color: T.textPrimary,
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
         }}>
-          {block.game_name}
-          <span style={{
-            fontSize: T.sizeBody,
-            fontWeight: T.weightBody,
-            color: T.textTertiary,
-            marginLeft: 4,
+          <div style={{
+            fontSize: T.sizeTitle,
+            fontWeight: T.weightTitle,
+            color: T.textPrimary,
           }}>
-            (#{block.game_number})
-          </span>
+            {block.game_name}
+            <span style={{
+              fontSize: T.sizeBody,
+              fontWeight: T.weightBody,
+              color: T.textTertiary,
+              marginLeft: 4,
+            }}>
+              (#{block.game_number})
+            </span>
+          </div>
+          {block.explorable && onExplore && !disabled && (
+            <button
+              onClick={() => onExplore(block.game_name, block.game_number)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                fontSize: T.sizeSmall,
+                fontWeight: T.weightLabel,
+                fontFamily: T.font,
+                color: T.accent,
+                cursor: "pointer",
+                textDecoration: "none",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = "underline";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = "none";
+              }}
+            >
+              Explore →
+            </button>
+          )}
         </div>
         {/* Metrics row */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>

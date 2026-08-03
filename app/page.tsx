@@ -120,6 +120,19 @@ export default function Home() {
     sendMessage(`${prompt} ${choice}`);
   }
 
+  function handleExploreSelect(option: string) {
+    if (option.toLowerCase() === "i'm all set") return;
+    sendMessage(option);
+  }
+
+  function handleExploreGame(gameName: string, gameNumber: string) {
+    sendMessage(`Explore ${gameName} (#${gameNumber})`);
+  }
+
+  function handleCompareGames(gameIds: number[]) {
+    sendMessage(`Compare these games in detail (game_ids: ${gameIds.join(", ")})`);
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -185,6 +198,9 @@ export default function Home() {
                   <BlockRenderer
                     blocks={turn.blocks}
                     onChoiceSelect={handleChoiceSelect}
+                    onExploreSelect={handleExploreSelect}
+                    onExploreGame={handleExploreGame}
+                    onCompareGames={handleCompareGames}
                     choicesDisabled={i < turns.length - 1 || loading}
                   />
                 </div>
