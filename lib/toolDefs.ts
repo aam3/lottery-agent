@@ -395,7 +395,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   type: { type: "string", const: "comparison_table" },
                   columns: {
                     type: "array",
-                    description: "Metric column headers only — max 3. The first column (game name) and last column (Explore link) are generated automatically, so do NOT include them. Example: [{label:'Top Prize'}, {label:'Win Rate'}, {label:'ROI'}].",
+                    description: "Metric column headers only — max 3. The first column (game name with price pill) and last column (Explore link) are generated automatically, so do NOT include them. Do NOT include a Price column — the ticket price is already shown as a pill next to the game name. Example: [{label:'Top Prize'}, {label:'Win Rate'}, {label:'ROI'}].",
                     maxItems: 3,
                     items: {
                       type: "object",
