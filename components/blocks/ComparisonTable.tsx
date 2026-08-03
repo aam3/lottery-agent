@@ -63,15 +63,16 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds }: 
   const { columns, rows } = block;
 
   // Auto-detect if agent included the row label as the first column
-  // (more columns than values in the first row), then cap at 3 metric columns
-  // (the 4th visual column is reserved for Explore links)
+  // (more columns than values in the first row). Cap at 3 metric columns
+  // when Explore links are present (chat context) to reserve space for them.
+  const hasExploreLinks = !!rowGameIds && !!onCompare;
   const effectiveColumns = useMemo(() => {
     let cols = columns;
     if (rows.length > 0 && cols.length > rows[0].values.length) {
       cols = cols.slice(cols.length - rows[0].values.length);
     }
-    return cols.slice(0, 3);
-  }, [columns, rows]);
+    return hasExploreLinks ? cols.slice(0, 3) : cols;
+  }, [columns, rows, hasExploreLinks]);
 
   const priceColors = useMemo(() => {
     const tiers = new Set<number>();
@@ -137,7 +138,7 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds }: 
                     )}
                   </div>
                 </td>
-                {row.values.slice(0, 3).map((v, ci) => (
+                {row.values.slice(0, effectiveColumns.length).map((v, ci) => (
                   <td key={ci} style={{
                     padding: "8px 14px", textAlign: "center",
                     color: T.textPrimary,
