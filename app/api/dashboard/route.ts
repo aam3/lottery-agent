@@ -35,6 +35,7 @@ interface OutcomeGame {
 }
 
 interface ScatterGame {
+  game_id: number;
   game_name: string;
   game_number: string;
   price_tier: number;
@@ -150,15 +151,13 @@ export async function GET(request: Request) {
       }
     }
 
-    // ── 3. Context games for scatter (same price tier, same state) ─────────
-    const priceTiers = [...new Set(metricRows.map((r) => r.price_tier as number))];
+    // ── 3. Context games for scatter (ALL active games in state) ────────
     const contextRows = await sql`
       SELECT gm.game_id, g.game_name, g.game_number, g.price_tier,
              gm.reward_raw, gm.risk_raw
       FROM game_metrics gm
       JOIN games g ON g.game_id = gm.game_id
       WHERE g.state = ${state.toUpperCase()}
-        AND g.price_tier = ANY(${priceTiers})
         AND g.is_active = true
         AND gm.game_id != ALL(${gameIds})
     `;
@@ -299,6 +298,7 @@ export async function GET(request: Request) {
         : contextPrizeMap.get(g.game_id);
 
       return {
+        game_id: g.game_id,
         game_name: g.game_name,
         game_number: g.game_number,
         price_tier: g.price_tier,

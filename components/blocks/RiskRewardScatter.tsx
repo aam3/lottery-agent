@@ -6,12 +6,23 @@ import { T, S, buildPriceColors } from "@/lib/tokens";
 import { formatPrize, ChartTooltip } from "@/lib/chartUtils";
 import type { RiskRewardScatterBlock } from "./types";
 
-export default function RiskRewardScatter({ block }: { block: RiskRewardScatterBlock }) {
+interface Props {
+  block: RiskRewardScatterBlock;
+  highlightedGameIds?: Set<number>;
+}
+
+export default function RiskRewardScatter({ block, highlightedGameIds }: Props) {
   const { games } = block;
 
+  // Build colors only from highlighted games (or all if no highlight set)
+  const highlightedTiers = useMemo(() => {
+    if (!highlightedGameIds) return games.map((g) => g.price_tier);
+    return games.filter((g) => highlightedGameIds.has(g.game_id ?? -1)).map((g) => g.price_tier);
+  }, [games, highlightedGameIds]);
+
   const priceColors = useMemo(
-    () => buildPriceColors([...new Set(games.map((g) => g.price_tier))]),
-    [games],
+    () => buildPriceColors([...new Set(highlightedTiers)]),
+    [highlightedTiers],
   );
 
   const { xDomain, yDomain } = useMemo(() => {
@@ -83,15 +94,18 @@ export default function RiskRewardScatter({ block }: { block: RiskRewardScatterB
             }}
           />
           <Scatter data={games} cursor="pointer">
-            {games.map((g, i) => (
-              <Cell
-                key={i}
-                fill={priceColors[g.price_tier] ?? "#999"}
-                fillOpacity={0.85}
-                stroke="rgba(255,255,255,0.35)"
-                strokeWidth={1}
-              />
-            ))}
+            {games.map((g, i) => {
+              const isHighlighted = !highlightedGameIds || highlightedGameIds.has(g.game_id ?? -1);
+              return (
+                <Cell
+                  key={i}
+                  fill={isHighlighted ? (priceColors[g.price_tier] ?? "#999") : T.border}
+                  fillOpacity={isHighlighted ? 0.85 : 0.4}
+                  stroke={isHighlighted ? "rgba(255,255,255,0.35)" : "none"}
+                  strokeWidth={isHighlighted ? 1 : 0}
+                />
+              );
+            })}
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>

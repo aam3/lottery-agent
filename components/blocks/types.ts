@@ -42,6 +42,7 @@ export interface DepletionBarsBlock {
 export interface RiskRewardScatterBlock {
   type: "risk_reward_scatter";
   games: {
+    game_id?: number;
     game_name: string;
     game_number: string;
     price_tier: number;

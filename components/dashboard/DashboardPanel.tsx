@@ -113,6 +113,10 @@ function ActiveDashboard({
     games: [...data.scatter.highlighted, ...data.scatter.context],
   };
 
+  const highlightedScatterIds = new Set(
+    data.scatter.highlighted.map((g) => g.game_id).filter((id): id is number => id != null),
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Game tray */}
@@ -135,7 +139,7 @@ function ActiveDashboard({
         </DashboardCard>
 
         <DashboardCard title="Risk vs Reward" visual="scatter" onAskAbout={onAskAbout}>
-          <RiskRewardScatter block={scatterBlock} />
+          <RiskRewardScatter block={scatterBlock} highlightedGameIds={highlightedScatterIds} />
         </DashboardCard>
       </div>
     </div>
