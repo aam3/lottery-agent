@@ -1,6 +1,7 @@
 export const T = {
-  // Font
+  // Fonts
   font: "'Outfit', sans-serif",
+  fontLogo: "'Architects Daughter', cursive",
 
   // Type scale
   sizePageTitle: 24,
@@ -54,6 +55,19 @@ export const T = {
   pillRadius: 10,
   modalRadius: 14,
   modalShadow: "0 12px 40px rgba(0,0,0,0.15)",
+
+  // Navbar / branding
+  navBg: "#3949AB",
+  navLogoScratch: "#fff",
+  navLogoSmart: "#FEE788",
+  navActiveText: "#FEE788",
+  navActiveBorder: "#FEE788",
+  navInactiveText: "rgba(255,255,255,0.85)",
+  navHoverText: "rgba(255,255,255,0.95)",
+  navActiveHoverBg: "rgba(254,231,136,0.08)",
+  navCtaBg: "#FEE788",
+  navCtaText: "#2c2924",
+  navCtaGlow: "0 0 14px rgba(254,231,136,0.5), 0 0 4px rgba(254,231,136,0.3)",
 } as const;
 
 export const PRICE_PALETTE = [

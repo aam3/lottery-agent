@@ -53,9 +53,10 @@ interface Props {
   onCompare?: (gameIds: number[]) => void;
   disabled?: boolean;
   dashboardGameIds?: Set<number>;
+  header?: React.ReactNode;
 }
 
-export default function ComparisonTable({ block, onCompare, dashboardGameIds }: Props) {
+export default function ComparisonTable({ block, onCompare, dashboardGameIds, header }: Props) {
   // Map each row to a game_id if available (game_ids array corresponds to rows in order)
   const rowGameIds = block.game_ids && block.game_ids.length === block.rows.length
     ? block.game_ids
@@ -86,7 +87,8 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds }: 
   }, [rows]);
 
   return (
-    <div style={{ ...S.card, overflow: "hidden" }}>
+    <div style={{ ...S.card, overflowX: "auto", padding: header ? 16 : 0 }}>
+      {header}
       <table style={{
         width: "100%", borderCollapse: "collapse",
         fontFamily: T.font, fontSize: T.sizeSmall,
@@ -176,6 +178,8 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds }: 
                             color: T.accent,
                             cursor: "pointer",
                             textDecoration: "none",
+                            textUnderlineOffset: 2,
+                            transition: "color 0.12s",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.textDecoration = "underline";

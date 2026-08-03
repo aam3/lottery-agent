@@ -11,7 +11,7 @@ interface Props {
   highlightedGameIds?: Set<number>;
 }
 
-export default function RiskRewardScatter({ block, highlightedGameIds }: Props) {
+export default function RiskRewardScatter({ block, highlightedGameIds, header }: Props & { header?: React.ReactNode }) {
   const { games } = block;
 
   // Only render highlighted games (or all if no highlight set)
@@ -42,7 +42,8 @@ export default function RiskRewardScatter({ block, highlightedGameIds }: Props) 
   }, [games]);
 
   return (
-    <div style={{ ...S.card, padding: "16px 12px", height: 400 }}>
+    <div style={{ ...S.card, padding: 16, height: header ? 440 : 400 }}>
+      {header}
       {/* Bubble size legend */}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingRight: 8, marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

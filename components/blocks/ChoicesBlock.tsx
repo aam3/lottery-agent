@@ -41,7 +41,7 @@ export default function ChoicesBlock({ block, onSelect, disabled }: Props) {
               color: disabled ? T.textTertiary : T.textPrimary,
               background: disabled ? T.badgeBg : T.cardBg,
               border: `1px solid ${disabled ? T.badgeBorder : T.border}`,
-              borderRadius: T.smallRadius,
+              borderRadius: 8,
               cursor: disabled ? "default" : "pointer",
               opacity: disabled ? 0.6 : 1,
               transition: "background 0.15s, border-color 0.15s",

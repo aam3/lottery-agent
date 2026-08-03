@@ -338,18 +338,43 @@ export default function Home() {
 
   return (
     <main className="flex flex-col h-screen" style={{ background: T.pageBg }}>
-      {/* Header — full width */}
-      <header className="border-b bg-white px-6 py-4" style={{ borderColor: T.divider }}>
-        <div className="flex items-center">
-          <h1 className="text-lg font-semibold" style={{ color: T.textPrimary, fontFamily: T.font }}>
-            ScratchSmart
-          </h1>
-          {selectedState && (
-            <span style={{ marginLeft: 8, fontSize: T.sizeSmall, color: T.textTertiary, fontFamily: T.font }}>
-              {STATES.find((s) => s.abbr === selectedState)?.name}
-            </span>
-          )}
-        </div>
+      {/* Header — branded navbar */}
+      <header
+        style={{
+          height: 48,
+          background: T.navBg,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 20px",
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 50,
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: T.fontLogo,
+            fontSize: 17,
+            color: T.navLogoScratch,
+            letterSpacing: -0.3,
+            marginRight: 24,
+            lineHeight: 1,
+          }}
+        >
+          Scratch<span style={{ color: T.navLogoSmart }}>Smart</span>
+        </h1>
+        {selectedState && (
+          <span
+            style={{
+              fontSize: T.sizeBody,
+              fontWeight: T.weightBody,
+              color: T.navInactiveText,
+              fontFamily: T.font,
+            }}
+          >
+            {STATES.find((s) => s.abbr === selectedState)?.name}
+          </span>
+        )}
       </header>
 
       {/* Two-panel layout */}
@@ -394,11 +419,12 @@ export default function Home() {
                           padding: "6px 14px",
                           borderRadius: T.pillRadius,
                           border: `1px solid ${selectedState === s.abbr ? T.accent : T.border}`,
-                          background: selectedState === s.abbr ? T.accent : T.cardBg,
+                          background: selectedState === s.abbr ? T.accent : "transparent",
                           color: selectedState === s.abbr ? "#fff" : T.textPrimary,
                           fontSize: T.sizeSmall,
                           fontWeight: T.weightLabel,
                           fontFamily: T.font,
+                          letterSpacing: 0.3,
                           cursor: "pointer",
                           transition: "background 0.15s, border-color 0.15s, color 0.15s",
                         }}
@@ -436,7 +462,7 @@ export default function Home() {
                     <div
                       className="rounded-lg px-4 py-2.5 max-w-[85%]"
                       style={{
-                        background: T.textPrimary,
+                        background: T.accent,
                         color: "#fff",
                         fontSize: T.sizeBody,
                         fontFamily: T.font,
@@ -453,7 +479,7 @@ export default function Home() {
                   {turn.blocks ? (
                     <div
                       className="border rounded-lg px-4 py-3"
-                      style={{ borderColor: T.divider, background: T.cardBg }}
+                      style={{ borderColor: T.divider, background: T.cardBg, overflowX: "auto" }}
                     >
                       <BlockRenderer
                         blocks={turn.blocks}
@@ -472,6 +498,7 @@ export default function Home() {
                         borderColor: T.divider,
                         background: T.cardBg,
                         color: T.textPrimary,
+                        overflowX: "auto",
                       }}
                     >
                       <ReactMarkdown
@@ -540,10 +567,16 @@ export default function Home() {
               ))}
 
               {loading && (
-                <div className="flex items-center gap-2" style={{ color: T.textTertiary }}>
+                <div className="flex items-center gap-2" style={{ color: T.textTertiary, fontFamily: T.font, fontSize: T.sizeBody }}>
                   <div
-                    className="w-2 h-2 rounded-full animate-pulse"
-                    style={{ background: T.textTertiary }}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: `2px solid ${T.border}`,
+                      borderTopColor: T.accent,
+                      borderRadius: "50%",
+                      animation: "spin 0.8s linear infinite",
+                    }}
                   />
                   Thinking...
                 </div>
@@ -584,11 +617,20 @@ export default function Home() {
               <button
                 onClick={handleSend}
                 disabled={loading || !selectedState || !input.trim()}
-                className="px-5 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
                 style={{
-                  background: loading || !selectedState || !input.trim() ? T.border : T.textPrimary,
+                  padding: "8px 18px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: loading || !selectedState || !input.trim() ? T.textTertiary : T.accent,
                   color: "#fff",
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
                   fontFamily: T.font,
+                  letterSpacing: 0.3,
+                  cursor: loading || !selectedState || !input.trim() ? "default" : "pointer",
+                  opacity: loading || !selectedState || !input.trim() ? 0.5 : 1,
+                  transition: "background 0.15s, opacity 0.15s",
+                  flexShrink: 0,
                 }}
               >
                 Send

@@ -35,7 +35,7 @@ function renderBlock(
     case "text":
       return <TextBlock block={block} />;
     case "game_stats_summary":
-      return <GameStatsSummary block={block} onExplore={onExploreGame} disabled={choicesDisabled} dashboardGameIds={dashboardGameIds} />;
+      return <GameStatsSummary block={block} onExplore={onExploreGame} dashboardGameIds={dashboardGameIds} />;
     case "odds_chart":
       return <OddsChart block={block} />;
     case "comparison_table":

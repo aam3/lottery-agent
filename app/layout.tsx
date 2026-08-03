@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import "@fontsource/outfit/400.css";
+import "@fontsource/outfit/500.css";
+import "@fontsource/outfit/600.css";
+import "@fontsource/architects-daughter/400.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,12 +16,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body style={{ fontFamily: "'Outfit', sans-serif" }}>{children}</body>
     </html>
   );

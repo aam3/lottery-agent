@@ -4,16 +4,18 @@ import { T, S, OUTCOME_COLORS, buildPriceColors } from "@/lib/tokens";
 import { PricePill } from "@/lib/chartUtils";
 import type { OutcomeBarsBlock } from "./types";
 
-export default function OutcomeBars({ block }: { block: OutcomeBarsBlock }) {
+export default function OutcomeBars({ block, header }: { block: OutcomeBarsBlock; header?: React.ReactNode }) {
   const { games } = block;
   const priceColors = buildPriceColors([...new Set(games.map((g) => g.price_tier))]);
 
   return (
     <div style={{ ...S.card, padding: 20 }}>
-      <div style={{ ...S.sectionTitle, fontFamily: T.font, marginBottom: 16 }}>
-        Outcome Breakdown
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {header || (
+        <div style={{ ...S.sectionTitle, fontFamily: T.font, marginBottom: 16 }}>
+          Outcome Breakdown
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {games.map((game) => {
           const segments = [
             { key: "win", label: "Win", pct: game.p_winning_cash * 100, color: OUTCOME_COLORS.win },
@@ -37,7 +39,7 @@ export default function OutcomeBars({ block }: { block: OutcomeBarsBlock }) {
               </div>
               {/* Stacked bar */}
               <div style={{
-                display: "flex", height: 14, borderRadius: 7, overflow: "hidden",
+                display: "flex", height: 10, borderRadius: 5, overflow: "hidden",
                 background: T.divider,
               }}>
                 {segments.map((seg) =>
@@ -54,7 +56,7 @@ export default function OutcomeBars({ block }: { block: OutcomeBarsBlock }) {
                 )}
               </div>
               {/* Legend row */}
-              <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
+              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
                 {segments.map((seg) => (
                   <div key={seg.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <div style={{

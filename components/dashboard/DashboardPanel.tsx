@@ -59,7 +59,7 @@ export default function DashboardPanel({
         height: "100%",
         overflowY: "auto",
         background: T.pageBg,
-        padding: 24,
+        padding: 28,
         fontFamily: T.font,
       }}
     >
@@ -117,62 +117,52 @@ function ActiveDashboard({
     data.scatter.highlighted.map((g) => g.game_id).filter((id): id is number => id != null),
   );
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Game tray */}
-      <DashboardHeader games={data.games} onRemoveGame={onRemoveGame} />
-
-      {/* Stats / comparison table — full width */}
-      <DashboardCard title="Game Stats" visual="stats_table" onAskAbout={onAskAbout}>
-        <ComparisonTable block={statsBlock} />
-      </DashboardCard>
-
-      {/* Odds chart — full width */}
-      <DashboardCard title="Win Probability by Amount" visual="odds_chart" onAskAbout={onAskAbout}>
-        <OddsChart block={oddsBlock} />
-      </DashboardCard>
-
-      {/* Two-column: outcome bars + scatter */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <DashboardCard title="Outcome Breakdown" visual="outcome_bars" onAskAbout={onAskAbout}>
-          <OutcomeBars block={outcomeBlock} />
-        </DashboardCard>
-
-        <DashboardCard title="Risk vs Reward" visual="scatter" onAskAbout={onAskAbout}>
-          <RiskRewardScatter block={scatterBlock} highlightedGameIds={highlightedScatterIds} />
-        </DashboardCard>
-      </div>
+  const cardHeader = (title: string | null, visual: string) => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: title ? "space-between" : "flex-end",
+        alignItems: "center",
+        marginBottom: 20,
+      }}
+    >
+      {title && <div style={{ ...S.sectionTitle, fontFamily: T.font }}>{title}</div>}
+      <AskAboutLink visual={visual} onAsk={onAskAbout} />
     </div>
   );
-}
 
-// ─── Dashboard card wrapper ──────────────────────────────────────────────────
-
-function DashboardCard({
-  title,
-  visual,
-  onAskAbout,
-  children,
-}: {
-  title: string;
-  visual: string;
-  onAskAbout: (visual: string) => void;
-  children: React.ReactNode;
-}) {
   return (
-    <div style={{ ...S.card, padding: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <div style={S.sectionTitle}>{title}</div>
-        <AskAboutLink visual={visual} onAsk={onAskAbout} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Game tray */}
+      <div style={{ marginBottom: 4 }}>
+        <DashboardHeader games={data.games} onRemoveGame={onRemoveGame} />
       </div>
-      {children}
+
+      {/* Stats / comparison table */}
+      <ComparisonTable
+        block={statsBlock}
+        header={cardHeader("Game Stats", "stats_table")}
+      />
+
+      {/* Odds chart — full width */}
+      <OddsChart
+        block={oddsBlock}
+        header={cardHeader("Win Probability by Amount", "odds_chart")}
+      />
+
+      {/* Two-column: outcome bars + scatter */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <OutcomeBars
+          block={outcomeBlock}
+          header={cardHeader("Outcome Breakdown", "outcome_bars")}
+        />
+
+        <RiskRewardScatter
+          block={scatterBlock}
+          highlightedGameIds={highlightedScatterIds}
+          header={cardHeader("Risk vs Reward", "scatter")}
+        />
+      </div>
     </div>
   );
 }
@@ -188,9 +178,16 @@ function LoadingSkeleton() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Tray skeleton */}
-      <div style={{ display: "flex", gap: 8, padding: "12px 0", borderBottom: `1px solid ${T.divider}` }}>
-        <div style={{ ...skeletonBar, width: 120, height: 28 }} />
+      {/* Tray skeleton — matches compare tray shape */}
+      <div style={{
+        height: 48,
+        borderRadius: 12,
+        border: "1.5px dashed rgba(57,73,171,0.35)",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 16px",
+      }}>
+        <div style={{ ...skeletonBar, width: 120, height: 20 }} />
       </div>
       {/* Stats table skeleton */}
       <div style={{ ...S.card, padding: 16 }}>
@@ -203,7 +200,7 @@ function LoadingSkeleton() {
         <div style={{ ...skeletonBar, width: "100%", height: 200 }} />
       </div>
       {/* Two-column skeleton */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div style={{ ...S.card, padding: 16 }}>
           <div style={{ ...skeletonBar, width: 140, height: 16, marginBottom: 12 }} />
           <div style={{ ...skeletonBar, width: "100%", height: 120 }} />
@@ -213,13 +210,6 @@ function LoadingSkeleton() {
           <div style={{ ...skeletonBar, width: "100%", height: 120 }} />
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
     </div>
   );
 }
