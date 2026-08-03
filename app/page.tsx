@@ -142,6 +142,15 @@ export default function Home() {
     setInput("");
     setLoading(true);
 
+    // Show user message immediately as a pending turn
+    const pendingTurn: Turn = {
+      question: trimmed,
+      steps: [],
+      usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, iterations: 0 },
+    };
+    const turnsWithPending = [...turns, pendingTurn];
+    setTurns(turnsWithPending);
+
     const userMessage = `[State: ${selectedState}] ${trimmed}`;
     const newMessages = [
       ...messages,
@@ -178,6 +187,8 @@ export default function Home() {
 
       if (!res.ok) {
         setError(data.error || `Error: ${res.status}`);
+        // Remove the pending turn on error
+        setTurns(turns);
         setLoading(false);
         return;
       }
@@ -187,6 +198,7 @@ export default function Home() {
         ...newMessages,
         { role: "assistant" as const, content: assistantContent },
       ]);
+      // Replace the pending turn with the complete turn
       setTurns([
         ...turns,
         {
@@ -199,6 +211,7 @@ export default function Home() {
       ]);
     } catch {
       setError("Failed to connect to the server.");
+      setTurns(turns); // Remove the pending turn
     } finally {
       setLoading(false);
     }
