@@ -8,7 +8,13 @@ import type { DashboardData, DashboardMode } from "@/components/dashboard/Dashbo
 import type { Block } from "@/components/blocks/types";
 import { T } from "@/lib/tokens";
 
-const STATES = ["NJ", "CA", "FL", "NY", "OH"] as const;
+const STATES: { abbr: string; name: string }[] = [
+  { abbr: "NJ", name: "New Jersey" },
+  { abbr: "CA", name: "California" },
+  { abbr: "FL", name: "Florida" },
+  { abbr: "NY", name: "New York" },
+  { abbr: "OH", name: "Ohio" },
+];
 
 const VISUAL_TO_TOOL: Record<string, string> = {
   stats_table: "query_games",
@@ -321,29 +327,15 @@ export default function Home() {
     <main className="flex flex-col h-screen" style={{ background: T.pageBg }}>
       {/* Header — full width */}
       <header className="border-b bg-white px-6 py-4" style={{ borderColor: T.divider }}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <h1 className="text-lg font-semibold" style={{ color: T.textPrimary, fontFamily: T.font }}>
             ScratchSmart
           </h1>
-          <div className="flex gap-2">
-            {STATES.map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setSelectedState(s);
-                  setError("");
-                }}
-                className="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
-                style={{
-                  background: selectedState === s ? T.textPrimary : T.pageBg,
-                  color: selectedState === s ? "#fff" : T.textSecondary,
-                  fontFamily: T.font,
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          {selectedState && (
+            <span style={{ marginLeft: 8, fontSize: T.sizeSmall, color: T.textTertiary, fontFamily: T.font }}>
+              {STATES.find((s) => s.abbr === selectedState)?.name}
+            </span>
+          )}
         </div>
       </header>
 
@@ -362,13 +354,48 @@ export default function Home() {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-6">
-              {turns.length === 0 && !loading && (
-                <div className="text-center mt-20" style={{ color: T.textTertiary }}>
-                  {selectedState
-                    ? `Ask a question about ${selectedState} scratch-off games.`
-                    : "Select a state to get started."}
+              {/* Welcome message — always shown as the first "turn" */}
+              <div className="space-y-3">
+                <div
+                  className="border rounded-lg px-4 py-3"
+                  style={{ borderColor: T.divider, background: T.cardBg }}
+                >
+                  <div style={{
+                    fontSize: T.sizeBody,
+                    color: T.textPrimary,
+                    fontFamily: T.font,
+                    lineHeight: T.lhBody,
+                    marginBottom: 12,
+                  }}>
+                    Before I can recommend games, select your state.
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {STATES.map((s) => (
+                      <button
+                        key={s.abbr}
+                        onClick={() => {
+                          setSelectedState(s.abbr);
+                          setError("");
+                        }}
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: T.pillRadius,
+                          border: `1px solid ${selectedState === s.abbr ? T.accent : T.border}`,
+                          background: selectedState === s.abbr ? T.accent : T.cardBg,
+                          color: selectedState === s.abbr ? "#fff" : T.textPrimary,
+                          fontSize: T.sizeSmall,
+                          fontWeight: T.weightLabel,
+                          fontFamily: T.font,
+                          cursor: "pointer",
+                          transition: "background 0.15s, border-color 0.15s, color 0.15s",
+                        }}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
 
               {turns.map((turn, i) => (
                 <div key={i} className="space-y-3">
@@ -510,8 +537,8 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 placeholder={
                   selectedState
-                    ? `Ask about ${selectedState} scratch-off games...`
-                    : "Select a state first"
+                    ? `Ask about ${STATES.find((s) => s.abbr === selectedState)?.name} scratch-off games...`
+                    : "Select a state above to get started"
                 }
                 disabled={loading || !selectedState}
                 className="flex-1 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 disabled:text-gray-400"
