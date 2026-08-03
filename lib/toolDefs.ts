@@ -395,7 +395,8 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                   type: { type: "string", const: "comparison_table" },
                   columns: {
                     type: "array",
-                    description: "Metric column headers only — the first column (item/game name) is generated automatically from row labels, so do NOT include it here. Example: [{label:'Top Prize'}, {label:'Overall Odds'}].",
+                    description: "Metric column headers only — max 3. The first column (game name) and last column (Explore link) are generated automatically, so do NOT include them. Example: [{label:'Top Prize'}, {label:'Win Rate'}, {label:'ROI'}].",
+                    maxItems: 3,
                     items: {
                       type: "object",
                       properties: {
@@ -430,14 +431,10 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
                       additionalProperties: false,
                     },
                   },
-                  explorable: {
-                    type: "boolean",
-                    description: "Set to true to show a Compare button on this table. Use when recommending games so the user can see a detailed visual comparison. Omit inside explore views.",
-                  },
                   game_ids: {
                     type: "array",
                     items: { type: "integer" },
-                    description: "Game IDs of the compared games. Required when explorable is true.",
+                    description: "Game IDs of the compared games, one per row in the same order as rows. Include when rows are individual games so each row gets an Explore link.",
                   },
                 },
                 required: ["type", "columns", "rows"],
