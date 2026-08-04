@@ -134,9 +134,7 @@ function ActiveDashboard({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Game tray */}
-      <div style={{ marginBottom: 4 }}>
-        <DashboardHeader games={data.games} onRemoveGame={onRemoveGame} />
-      </div>
+      <DashboardHeader games={data.games} onRemoveGame={onRemoveGame} />
 
       {/* Stats / comparison table */}
       <ComparisonTable
@@ -178,16 +176,15 @@ function LoadingSkeleton() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Tray skeleton — matches compare tray shape */}
+      {/* Tray skeleton */}
       <div style={{
-        height: 48,
-        borderRadius: T.trayRadius,
-        border: "1.5px dashed rgba(57,73,171,0.35)",
         display: "flex",
-        alignItems: "center",
-        padding: "0 16px",
+        gap: 8,
+        padding: "12px 0",
+        borderBottom: `1px solid ${T.divider}`,
       }}>
-        <div style={{ ...skeletonBar, width: 120, height: 20 }} />
+        <div style={{ ...skeletonBar, width: 120, height: 24 }} />
+        <div style={{ ...skeletonBar, width: 100, height: 24 }} />
       </div>
       {/* Stats table skeleton */}
       <div style={{ ...S.card, padding: 16 }}>

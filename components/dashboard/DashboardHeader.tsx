@@ -25,41 +25,28 @@ export default function DashboardHeader({ games, onRemoveGame }: DashboardHeader
     [games],
   );
 
+  if (isEmpty) return null;
+
   return (
     <div
       style={{
-        height: 48,
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderRadius: T.trayRadius,
-        border: isEmpty
-          ? "1.5px dashed rgba(57,73,171,0.35)"
-          : `1.5px solid ${T.accent}`,
-        boxShadow: "0 -2px 12px rgba(0,0,0,0.08)",
-        padding: "0 16px 0 12px",
         display: "flex",
-        alignItems: "center",
+        flexWrap: "wrap",
         gap: 8,
-        transition: "border 0.2s",
+        padding: "12px 0",
+        borderBottom: `1px solid ${T.divider}`,
         fontFamily: T.font,
       }}
     >
-      {isEmpty ? (
-        <span style={{ fontSize: T.sizeBody, color: T.textTertiary }}>
-          Explore a game to see detailed stats here
-        </span>
-      ) : (
-        games.map((game) => (
-          <GamePill
-            key={game.gameId}
-            gameName={game.gameName}
-            gameNumber={game.gameNumber}
-            priceColor={priceColors[game.priceTier]}
-            onRemove={() => onRemoveGame(game.gameId)}
-          />
-        ))
-      )}
+      {games.map((game) => (
+        <GamePill
+          key={game.gameId}
+          gameName={game.gameName}
+          gameNumber={game.gameNumber}
+          priceColor={priceColors[game.priceTier]}
+          onRemove={() => onRemoveGame(game.gameId)}
+        />
+      ))}
     </div>
   );
 }
