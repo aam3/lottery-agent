@@ -60,6 +60,8 @@ interface DashboardGameState {
 
 export default function Home() {
   const [selectedState, setSelectedState] = useState("");
+  const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
+  const stateDropdownRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<
     Array<{ role: "user" | "assistant"; content: string }>
   >([]);
@@ -93,6 +95,46 @@ export default function Home() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns, loading]);
+
+  // Close state dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (stateDropdownRef.current && !stateDropdownRef.current.contains(e.target as Node)) {
+        setStateDropdownOpen(false);
+      }
+    }
+    if (stateDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [stateDropdownOpen]);
+
+  function handleStateChange(abbr: string) {
+    if (abbr === selectedState) {
+      setStateDropdownOpen(false);
+      return;
+    }
+    if (turns.length > 0) {
+      const confirmed = window.confirm(
+        `Switch to ${STATES.find((s) => s.abbr === abbr)?.name}? This will reset your current conversation.`
+      );
+      if (!confirmed) {
+        setStateDropdownOpen(false);
+        return;
+      }
+    }
+    setSelectedState(abbr);
+    setStateDropdownOpen(false);
+    setMessages([]);
+    setTurns([]);
+    setDashboardGames([]);
+    setDashboardMode("empty");
+    setDashboardData(null);
+    setError("");
+    setInput("");
+    setPendingToolHint(null);
+    conversationIdRef.current = `conv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  }
 
   // ─── Dashboard fetching ──────────────────────────────────────────────────
 
@@ -363,18 +405,6 @@ export default function Home() {
         >
           Scratch<span style={{ color: T.navLogoSmart }}>Smart</span>
         </h1>
-        {selectedState && (
-          <span
-            style={{
-              fontSize: T.sizeBody,
-              fontWeight: T.weightBody,
-              color: T.navInactiveText,
-              fontFamily: T.font,
-            }}
-          >
-            {STATES.find((s) => s.abbr === selectedState)?.name}
-          </span>
-        )}
       </header>
 
       {/* Two-panel layout */}
@@ -392,54 +422,112 @@ export default function Home() {
             zIndex: 1,
           }}
         >
+          {/* State header bar */}
+          {selectedState && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "10px 16px",
+                borderBottom: `1px solid ${T.divider}`,
+                background: T.cardBg,
+                gap: 8,
+                flexShrink: 0,
+                position: "relative",
+              }}
+              ref={stateDropdownRef}
+            >
+              <span
+                style={{
+                  fontSize: T.sizeLabel,
+                  fontWeight: T.weightLabel,
+                  color: T.textSecondary,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase" as const,
+                }}
+              >
+                Browsing
+              </span>
+              <button
+                onClick={() => setStateDropdownOpen(!stateDropdownOpen)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontSize: T.sizeBody,
+                  fontWeight: T.weightTitle,
+                  color: T.accent,
+                  fontFamily: T.font,
+                  cursor: "pointer",
+                }}
+              >
+                {STATES.find((s) => s.abbr === selectedState)?.name}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" style={{ marginTop: 1 }}>
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {/* State dropdown */}
+              {stateDropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 16,
+                    marginTop: 4,
+                    background: T.cardBg,
+                    borderRadius: T.cardRadius,
+                    boxShadow: T.dropdownShadow,
+                    border: `1px solid ${T.divider}`,
+                    zIndex: 100,
+                    minWidth: 180,
+                    overflow: "hidden",
+                  }}
+                >
+                  {STATES.map((s) => (
+                    <button
+                      key={s.abbr}
+                      onClick={() => handleStateChange(s.abbr)}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        padding: "9px 16px",
+                        border: "none",
+                        background: s.abbr === selectedState ? T.accent : "transparent",
+                        color: s.abbr === selectedState ? "#fff" : T.textPrimary,
+                        fontSize: T.sizeBody,
+                        fontWeight: T.weightLabel,
+                        fontFamily: T.font,
+                        cursor: "pointer",
+                        textAlign: "left" as const,
+                        transition: "background 0.1s",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (s.abbr !== selectedState) {
+                          (e.target as HTMLButtonElement).style.background = T.hoverBg;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (s.abbr !== selectedState) {
+                          (e.target as HTMLButtonElement).style.background = "transparent";
+                        }
+                      }}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-6">
-              {/* Welcome message — always shown as the first "turn" */}
-              <div className="space-y-3">
-                <div
-                  className="px-4 py-3"
-                  style={{ border: `1px solid ${T.divider}`, borderRadius: T.cardRadius, background: T.agentBubbleBg }}
-                >
-                  <div style={{
-                    fontSize: T.sizeBody,
-                    color: T.textPrimary,
-                    fontFamily: T.font,
-                    lineHeight: T.lhBody,
-                    marginBottom: 12,
-                  }}>
-                    Before I can recommend games, select your state.
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {STATES.map((s) => (
-                      <button
-                        key={s.abbr}
-                        onClick={() => {
-                          setSelectedState(s.abbr);
-                          setError("");
-                        }}
-                        style={{
-                          padding: "6px 14px",
-                          borderRadius: T.pillRadius,
-                          border: `1px solid ${selectedState === s.abbr ? T.accent : T.border}`,
-                          background: selectedState === s.abbr ? T.accent : "transparent",
-                          color: selectedState === s.abbr ? "#fff" : T.textPrimary,
-                          fontSize: T.sizeSmall,
-                          fontWeight: T.weightLabel,
-                          fontFamily: T.font,
-                          letterSpacing: 0.3,
-                          cursor: "pointer",
-                          transition: "background 0.15s, border-color 0.15s, color 0.15s",
-                        }}
-                      >
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Follow-up after state selection */}
+              {/* Welcome message after state selection */}
               {selectedState && (
                 <div className="space-y-3">
                   <div
@@ -452,7 +540,7 @@ export default function Home() {
                       fontFamily: T.font,
                       lineHeight: T.lhBody,
                     }}>
-                      How can I help you with {STATES.find((s) => s.abbr === selectedState)?.name} scratch-off games?
+                      How can I help you explore {STATES.find((s) => s.abbr === selectedState)?.name} scratch-off games?
                     </div>
                   </div>
                 </div>
@@ -655,6 +743,119 @@ export default function Home() {
           />
         </div>
       </div>
+      {/* State selection modal — shown when no state selected */}
+      {!selectedState && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(44, 41, 36, 0.3)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: T.cardBg,
+              borderRadius: T.modalRadius,
+              boxShadow: T.modalShadow,
+              padding: "36px 44px 40px",
+              maxWidth: 420,
+              width: "100%",
+            }}
+          >
+            {/* Scratch-mark logo */}
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div
+              style={{
+                display: "inline-block",
+                position: "relative",
+                fontFamily: T.fontLogo,
+                fontSize: 24,
+                color: "#fff",
+                letterSpacing: -0.3,
+                lineHeight: 1,
+                padding: "8px 18px 10px",
+                isolation: "isolate" as const,
+              }}
+            >
+              <span style={{ position: "relative", zIndex: 1 }}>Scratch</span>
+              <span style={{ position: "relative", zIndex: 1, color: T.navLogoSmart }}>Smart</span>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: T.accent,
+                  borderRadius: "4px 16px 6px 14px",
+                  transform: "rotate(-0.8deg) skewX(-1.5deg)",
+                  zIndex: 0,
+                }}
+              />
+            </div>
+            </div>
+
+            <div
+              style={{
+                fontSize: 14,
+                color: T.textPrimary,
+                fontWeight: T.weightTitle,
+                marginBottom: 4,
+                fontFamily: T.font,
+              }}
+            >
+              Welcome!
+            </div>
+            <div
+              style={{
+                fontSize: T.sizeBody,
+                color: T.textSecondary,
+                marginBottom: 30,
+                lineHeight: T.lhBody,
+                fontFamily: T.font,
+              }}
+            >
+              Pick your state and I&apos;ll help you find the best scratch-off games to play.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {STATES.map((s) => (
+                <button
+                  key={s.abbr}
+                  onClick={() => {
+                    setSelectedState(s.abbr);
+                    setError("");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "11px 18px",
+                    borderRadius: T.cardRadius,
+                    border: `1px solid ${T.border}`,
+                    background: T.cardBg,
+                    color: T.textPrimary,
+                    fontSize: T.sizeBody,
+                    fontWeight: T.weightLabel,
+                    fontFamily: T.font,
+                    cursor: "pointer",
+                    textAlign: "left" as const,
+                    transition: "background 0.15s, border-color 0.15s, color 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.borderColor = T.accent;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.borderColor = T.border;
+                  }}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
