@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { T, S, buildPriceColors } from "@/lib/tokens";
 import {
@@ -8,16 +8,11 @@ import {
   PricePill, LineSwatch,
   THRESHOLDS, DASH_PATTERNS, formatThreshold,
 } from "@/lib/chartUtils";
-import RangeSlider from "@/components/RangeSlider";
 import type { OddsChartBlock } from "./types";
 
 export default function OddsChart({ block, header }: { block: OddsChartBlock; header?: React.ReactNode }) {
   const { games } = block;
   const isSingle = games.length === 1;
-
-  // Slider state: indices into THRESHOLDS (0–9)
-  const [rangelow, setRangeLow] = useState(0);
-  const [rangeHigh, setRangeHigh] = useState(THRESHOLDS.length - 1);
 
   const priceColors = useMemo(
     () => buildPriceColors([...new Set(games.map((g) => g.price_tier))]),
@@ -34,12 +29,11 @@ export default function OddsChart({ block, header }: { block: OddsChartBlock; he
   }, [games]);
 
   const filteredThresholds = useMemo(() => {
-    const sliced = THRESHOLDS.slice(rangelow, rangeHigh + 1);
     if (isSingle) {
-      return sliced.filter((t) => t <= games[0].top_prize_value);
+      return THRESHOLDS.filter((t) => t <= games[0].top_prize_value);
     }
-    return sliced;
-  }, [games, isSingle, rangelow, rangeHigh]);
+    return THRESHOLDS;
+  }, [games, isSingle]);
 
   // Use game_number as dataKey (safe for Recharts property lookup — no special chars)
   const lineData = useMemo(
@@ -54,42 +48,9 @@ export default function OddsChart({ block, header }: { block: OddsChartBlock; he
     [games, filteredThresholds],
   );
 
-  const rangeLabel = `${formatThreshold(THRESHOLDS[rangelow])} – ${formatThreshold(THRESHOLDS[rangeHigh])}`;
-
   return (
-    <div style={{ ...S.card, padding: "14px 16px 16px", display: "flex", flexDirection: "column", height: header ? 420 : 380 }}>
+    <div style={{ ...S.card, padding: 16, display: "flex", flexDirection: "column", height: header ? 380 : 340 }}>
       {header}
-
-      {/* Title (when no dashboard header) */}
-      {!header && (
-        <div style={{ ...S.sectionTitle, fontFamily: T.font }}>
-          Win Probability by Amount
-        </div>
-      )}
-
-      {/* Controls row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          marginBottom: 4,
-        }}
-      >
-        <span style={{ fontSize: T.sizeCaption, color: T.textTertiary, fontFamily: T.font, whiteSpace: "nowrap" }}>
-          Prize range:{" "}
-          <span style={{ color: T.textPrimary, fontWeight: T.weightLabel }}>{rangeLabel}</span>
-        </span>
-        <RangeSlider
-          min={0}
-          max={THRESHOLDS.length - 1}
-          low={rangelow}
-          high={rangeHigh}
-          onChange={(lo, hi) => { setRangeLow(lo); setRangeHigh(hi); }}
-          width={220}
-        />
-      </div>
 
       {/* Legend (multi-game only) */}
       {!isSingle && (

@@ -64,7 +64,7 @@ export default function RangeSlider({ min, max, low, high, onChange, width = 220
     width: 14,
     height: 14,
     borderRadius: "50%",
-    background: T.accent,
+    background: "#999",
     border: "2px solid #fff",
     boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
     transform: "translate(-50%, -50%)",
@@ -108,7 +108,7 @@ export default function RangeSlider({ min, max, low, high, onChange, width = 220
           transform: "translateY(-50%)",
           height: 4,
           borderRadius: 2,
-          background: T.accent,
+          background: "#aaa",
         }}
       />
       {/* Low thumb */}
