@@ -398,8 +398,8 @@ export default function Home() {
               {/* Welcome message — always shown as the first "turn" */}
               <div className="space-y-3">
                 <div
-                  className="border rounded-lg px-4 py-3"
-                  style={{ borderColor: T.divider, background: T.agentBubbleBg }}
+                  className="px-4 py-3"
+                  style={{ border: `1px solid ${T.divider}`, borderRadius: T.cardRadius, background: T.agentBubbleBg }}
                 >
                   <div style={{
                     fontSize: T.sizeBody,
@@ -443,8 +443,8 @@ export default function Home() {
               {selectedState && (
                 <div className="space-y-3">
                   <div
-                    className="border rounded-lg px-4 py-3"
-                    style={{ borderColor: T.divider, background: T.agentBubbleBg }}
+                    className="px-4 py-3"
+                    style={{ border: `1px solid ${T.divider}`, borderRadius: T.cardRadius, background: T.agentBubbleBg }}
                   >
                     <div style={{
                       fontSize: T.sizeBody,
@@ -463,8 +463,9 @@ export default function Home() {
                   {/* User message */}
                   <div className="flex justify-end">
                     <div
-                      className="rounded-lg px-4 py-2.5 max-w-[85%]"
+                      className="px-4 py-2.5 max-w-[85%]"
                       style={{
+                        borderRadius: T.cardRadius,
                         background: T.accent,
                         color: "#fff",
                         fontSize: T.sizeBody,
@@ -481,8 +482,8 @@ export default function Home() {
                   {/* Assistant answer */}
                   {turn.blocks ? (
                     <div
-                      className="border rounded-lg px-4 py-3"
-                      style={{ borderColor: T.divider, background: T.agentBubbleBg, overflowX: "auto" }}
+                      className="px-4 py-3"
+                      style={{ border: `1px solid ${T.divider}`, borderRadius: T.cardRadius, background: T.agentBubbleBg, overflowX: "auto" }}
                     >
                       <BlockRenderer
                         blocks={turn.blocks}
@@ -496,9 +497,10 @@ export default function Home() {
                     </div>
                   ) : turn.answer ? (
                     <div
-                      className="border rounded-lg px-4 py-3 prose prose-sm max-w-none"
+                      className="px-4 py-3 prose prose-sm max-w-none"
                       style={{
-                        borderColor: T.divider,
+                        border: `1px solid ${T.divider}`,
+                        borderRadius: T.cardRadius,
                         background: T.agentBubbleBg,
                         color: T.textPrimary,
                         overflowX: "auto",
@@ -609,9 +611,10 @@ export default function Home() {
                     : "Select a state above to get started"
                 }
                 disabled={loading || !selectedState}
-                className="flex-1 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 disabled:text-gray-400"
+                className="flex-1 px-4 py-2.5 focus:outline-none focus:ring-2 disabled:text-gray-400"
                 style={{
                   border: `1px solid ${T.border}`,
+                  borderRadius: T.cardRadius,
                   fontSize: T.sizeBody,
                   fontFamily: T.font,
                   background: loading || !selectedState ? T.pageBg : T.cardBg,

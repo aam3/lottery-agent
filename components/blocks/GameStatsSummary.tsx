@@ -4,7 +4,7 @@ import { useState } from "react";
 import { T, S } from "@/lib/tokens";
 
 const cardBorder = {
-  border: `1px solid ${T.border}`,
+  border: `1px solid ${T.divider}`,
   borderRadius: T.cardRadius,
 };
 import type { GameStatsSummaryBlock } from "./types";
@@ -103,7 +103,7 @@ export default function GameStatsSummary({ block, onExplore, disabled, dashboard
                 fontSize: T.sizeSmall,
                 fontWeight: T.weightLabel,
                 fontFamily: T.font,
-                color: isOnDashboard ? T.accent : hovered ? T.accent : T.textTertiary,
+                color: T.accent,
                 textDecoration: hovered && !isOnDashboard ? "underline" : "none",
                 textUnderlineOffset: 2,
                 flexShrink: 0,

@@ -54,6 +54,8 @@ export const T = {
   hoverBg: "#f7f3e8",
   smallRadius: 6,
   pillRadius: 10,
+  trayRadius: 12,
+  chipRadius: 20,
   modalRadius: 14,
   modalShadow: "0 12px 40px rgba(0,0,0,0.15)",
 

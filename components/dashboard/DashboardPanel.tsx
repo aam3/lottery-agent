@@ -181,7 +181,7 @@ function LoadingSkeleton() {
       {/* Tray skeleton — matches compare tray shape */}
       <div style={{
         height: 48,
-        borderRadius: 12,
+        borderRadius: T.trayRadius,
         border: "1.5px dashed rgba(57,73,171,0.35)",
         display: "flex",
         alignItems: "center",

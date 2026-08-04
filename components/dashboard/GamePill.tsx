@@ -18,7 +18,7 @@ export default function GamePill({ gameName, gameNumber, priceColor, onRemove }:
         gap: 6,
         background: "rgba(255,255,255,0.6)",
         border: `1px solid ${T.border}`,
-        borderRadius: 20,
+        borderRadius: T.chipRadius,
         padding: "4px 8px 4px 10px",
         fontSize: T.sizeSmall,
         fontWeight: T.weightLabel,

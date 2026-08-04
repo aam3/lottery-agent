@@ -32,7 +32,7 @@ export default function DashboardHeader({ games, onRemoveGame }: DashboardHeader
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
-        borderRadius: 12,
+        borderRadius: T.trayRadius,
         border: isEmpty
           ? "1.5px dashed rgba(57,73,171,0.35)"
           : `1.5px solid ${T.accent}`,
