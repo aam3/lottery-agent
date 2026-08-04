@@ -167,10 +167,11 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds, he
                       isOnDashboard ? (
                         <span style={{
                           fontSize: T.sizeSmall,
-                          color: T.textTertiary,
+                          fontWeight: T.weightLabel,
+                          color: T.accent,
                           fontFamily: T.font,
                         }}>
-                          ✓
+                          ✓ Exploring
                         </span>
                       ) : (
                         <button
