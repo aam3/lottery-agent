@@ -386,7 +386,10 @@ export default function Home() {
             width: "33.333%",
             minWidth: 360,
             borderRight: `1px solid ${T.divider}`,
+            boxShadow: "3px 0 8px rgba(0,0,0,0.05)",
             background: "#fff",
+            position: "relative" as const,
+            zIndex: 1,
           }}
         >
           {/* Messages */}
@@ -396,7 +399,7 @@ export default function Home() {
               <div className="space-y-3">
                 <div
                   className="border rounded-lg px-4 py-3"
-                  style={{ borderColor: T.divider, background: T.cardBg }}
+                  style={{ borderColor: T.divider, background: T.agentBubbleBg }}
                 >
                   <div style={{
                     fontSize: T.sizeBody,
@@ -441,7 +444,7 @@ export default function Home() {
                 <div className="space-y-3">
                   <div
                     className="border rounded-lg px-4 py-3"
-                    style={{ borderColor: T.divider, background: T.cardBg }}
+                    style={{ borderColor: T.divider, background: T.agentBubbleBg }}
                   >
                     <div style={{
                       fontSize: T.sizeBody,
@@ -479,7 +482,7 @@ export default function Home() {
                   {turn.blocks ? (
                     <div
                       className="border rounded-lg px-4 py-3"
-                      style={{ borderColor: T.divider, background: T.cardBg, overflowX: "auto" }}
+                      style={{ borderColor: T.divider, background: T.agentBubbleBg, overflowX: "auto" }}
                     >
                       <BlockRenderer
                         blocks={turn.blocks}
@@ -496,7 +499,7 @@ export default function Home() {
                       className="border rounded-lg px-4 py-3 prose prose-sm max-w-none"
                       style={{
                         borderColor: T.divider,
-                        background: T.cardBg,
+                        background: T.agentBubbleBg,
                         color: T.textPrimary,
                         overflowX: "auto",
                       }}
