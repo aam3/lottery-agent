@@ -26,6 +26,12 @@ export default function RiskRewardScatter({ block, highlightedGameIds, header }:
   );
 
   // Compute axis domains from ALL games (full landscape), not just visible
+  const zDomain = useMemo(() => {
+    const vals = games.map((g) => g.avg_cash_prize).filter((v) => v > 0);
+    if (vals.length === 0) return [0, 1] as [number, number];
+    return [Math.min(...vals), Math.max(...vals)] as [number, number];
+  }, [games]);
+
   const { xDomain, yDomain } = useMemo(() => {
     const xVals = games.map((g) => g.risk_scaled);
     const yVals = games.map((g) => g.reward_scaled);
@@ -80,7 +86,7 @@ export default function RiskRewardScatter({ block, highlightedGameIds, header }:
             label={{ value: "Reward", angle: -90, position: "insideLeft", offset: -2, ...S.chartAxisLabel, fontFamily: T.font }}
             width={50}
           />
-          <ZAxis type="number" dataKey="avg_cash_prize" range={[40, 400]} name="Avg Cash Prize" />
+          <ZAxis type="number" dataKey="avg_cash_prize" domain={zDomain} range={[40, 400]} name="Avg Cash Prize" />
           <Tooltip
             cursor={S.chartCursor}
             content={({ payload }) => {

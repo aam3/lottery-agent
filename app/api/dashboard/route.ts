@@ -113,8 +113,10 @@ export async function GET(request: Request) {
 
     // ── 2. Prize data (for odds chart + top prize + avg_cash_prize) ────────
     const prizeRows = await sql`
-      SELECT p.game_id, p.prize_value, p.prizes_remaining, p.is_free_ticket
+      SELECT p.game_id, p.prize_value, p.prizes_remaining, p.is_free_ticket,
+             g.price_tier
       FROM prizes p
+      JOIN games g ON g.game_id = p.game_id
       WHERE p.game_id = ANY(${gameIds})
       ORDER BY p.game_id, p.prize_value DESC NULLS LAST
     `;
