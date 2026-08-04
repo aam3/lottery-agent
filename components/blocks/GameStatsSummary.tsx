@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { T, S } from "@/lib/tokens";
 
 const cardBorder = {
@@ -16,10 +15,8 @@ interface Props {
   dashboardGameIds?: Set<number>;
 }
 
-export default function GameStatsSummary({ block, onExplore, disabled, dashboardGameIds }: Props) {
+export default function GameStatsSummary({ block, onExplore, dashboardGameIds }: Props) {
   const isOnDashboard = block.game_id != null && dashboardGameIds?.has(block.game_id);
-  const [hovered, setHovered] = useState(false);
-  const isInteractive = !!onExplore && !disabled;
 
   return (
     <div style={{
@@ -29,19 +26,7 @@ export default function GameStatsSummary({ block, onExplore, disabled, dashboard
       alignItems: "stretch",
       gap: 24,
       fontFamily: T.font,
-      background: isOnDashboard ? T.pickBg : hovered && isInteractive ? T.hoverBg : "transparent",
-      borderLeft: isOnDashboard ? `3px solid ${T.accent}` : "3px solid transparent",
-      transition: "background 0.12s, border-color 0.12s",
-      cursor: isInteractive ? "pointer" : "default",
-    }}
-    onClick={() => {
-      if (isInteractive) {
-        onExplore(block.game_name, block.game_number, block.game_id);
-      }
-    }}
-    onMouseEnter={() => setHovered(true)}
-    onMouseLeave={() => setHovered(false)}
-    >
+    }}>
       {/* Image — spans full height of name + metrics */}
       {block.image_url ? (
         <img
@@ -82,10 +67,7 @@ export default function GameStatsSummary({ block, onExplore, disabled, dashboard
           <div style={{
             fontSize: T.sizeTitle,
             fontWeight: T.weightTitle,
-            color: hovered && isInteractive ? T.accent : T.textPrimary,
-            textDecoration: hovered && isInteractive ? "underline" : "none",
-            textUnderlineOffset: 2,
-            transition: "color 0.12s",
+            color: T.textPrimary,
           }}>
             {block.game_name}
             <span style={{
@@ -98,20 +80,45 @@ export default function GameStatsSummary({ block, onExplore, disabled, dashboard
             </span>
           </div>
           {onExplore && (
-            <span
-              style={{
-                fontSize: T.sizeSmall,
-                fontWeight: T.weightLabel,
-                fontFamily: T.font,
-                color: T.accent,
-                textDecoration: hovered && !isOnDashboard ? "underline" : "none",
-                textUnderlineOffset: 2,
-                flexShrink: 0,
-                transition: "color 0.12s",
-              }}
-            >
-              {isOnDashboard ? "✓ Exploring" : "+ Explore"}
-            </span>
+            isOnDashboard ? (
+              <span
+                style={{
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
+                  fontFamily: T.font,
+                  color: T.accent,
+                  flexShrink: 0,
+                }}
+              >
+                ✓ Exploring
+              </span>
+            ) : (
+              <button
+                onClick={() => onExplore(block.game_name, block.game_number, block.game_id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontSize: T.sizeSmall,
+                  fontWeight: T.weightLabel,
+                  fontFamily: T.font,
+                  color: T.accent,
+                  cursor: "pointer",
+                  textDecoration: "none",
+                  textUnderlineOffset: 2,
+                  flexShrink: 0,
+                  transition: "color 0.12s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.textDecoration = "underline";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.textDecoration = "none";
+                }}
+              >
+                + Explore
+              </button>
+            )
           )}
         </div>
         {/* Metrics row */}
