@@ -11,7 +11,7 @@ interface Props {
   highlightedGameIds?: Set<number>;
 }
 
-export default function RiskRewardScatter({ block, highlightedGameIds, header }: Props & { header?: React.ReactNode }) {
+export default function RiskRewardScatter({ block, highlightedGameIds, header, footer }: Props & { header?: React.ReactNode; footer?: React.ReactNode }) {
   const { games } = block;
 
   // Only render highlighted games (or all if no highlight set)
@@ -48,7 +48,7 @@ export default function RiskRewardScatter({ block, highlightedGameIds, header }:
   }, [games]);
 
   return (
-    <div style={{ ...S.card, padding: 16, height: header ? 440 : 400 }}>
+    <div style={{ ...S.card, padding: 16, display: "flex", flexDirection: "column" }}>
       {header}
       {/* Bubble size legend */}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingRight: 8, marginBottom: 8 }}>
@@ -69,7 +69,8 @@ export default function RiskRewardScatter({ block, highlightedGameIds, header }:
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height="85%">
+      <div style={{ flex: 1, minHeight: 300 }}>
+      <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 8, right: 12, bottom: 24, left: 20 }}>
           <XAxis
             type="number" dataKey="risk_scaled" name="Risk"
@@ -114,6 +115,8 @@ export default function RiskRewardScatter({ block, highlightedGameIds, header }:
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
+      </div>
+      {footer}
     </div>
   );
 }

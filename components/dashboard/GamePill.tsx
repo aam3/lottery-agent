@@ -40,7 +40,12 @@ export default function GamePill({ gameName, gameNumber, priceColor, onRemove }:
           }}
         />
       )}
-      <span>{gameName} (#{gameNumber})</span>
+      <span>
+        {gameName}
+        <span style={{ fontSize: T.sizeCaption, fontWeight: T.weightBody, color: T.textTertiary, marginLeft: 3 }}>
+          (#{gameNumber})
+        </span>
+      </span>
       <button
         onClick={onRemove}
         style={{

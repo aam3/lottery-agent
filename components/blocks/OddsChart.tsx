@@ -10,7 +10,7 @@ import {
 } from "@/lib/chartUtils";
 import type { OddsChartBlock } from "./types";
 
-export default function OddsChart({ block, header }: { block: OddsChartBlock; header?: React.ReactNode }) {
+export default function OddsChart({ block, header, footer }: { block: OddsChartBlock; header?: React.ReactNode; footer?: React.ReactNode }) {
   const { games } = block;
   const isSingle = games.length === 1;
 
@@ -63,9 +63,9 @@ export default function OddsChart({ block, header }: { block: OddsChartBlock; he
             {games.map((g, i) => (
               <div key={`${g.game_name}-${g.game_number}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <LineSwatch color={priceColors[g.price_tier] ?? "#999"} dashArray={lineStyles[i]} />
-                <span style={{ fontSize: T.sizeSmall, color: T.textPrimary, fontFamily: T.font }}>
+                <span style={{ fontSize: T.sizeSmall, fontWeight: T.weightLabel, color: T.textPrimary, fontFamily: T.font }}>
                   {g.game_name}
-                  <span style={{ marginLeft: 3 }}>
+                  <span style={{ fontSize: T.sizeCaption, fontWeight: T.weightBody, color: T.textTertiary, marginLeft: 3 }}>
                     (#{g.game_number})
                   </span>
                 </span>
@@ -129,6 +129,7 @@ export default function OddsChart({ block, header }: { block: OddsChartBlock; he
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {footer}
     </div>
   );
 }

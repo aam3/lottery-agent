@@ -65,13 +65,13 @@ export default function GameStatsSummary({ block, onExplore, dashboardGameIds }:
           justifyContent: "space-between",
         }}>
           <div style={{
-            fontSize: T.sizeTitle,
+            fontSize: T.sizeBody,
             fontWeight: T.weightTitle,
             color: T.textPrimary,
           }}>
             {block.game_name}
             <span style={{
-              fontSize: T.sizeBody,
+              fontSize: T.sizeSmall,
               fontWeight: T.weightBody,
               color: T.textTertiary,
               marginLeft: 4,

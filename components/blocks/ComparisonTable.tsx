@@ -11,13 +11,19 @@ function GamePart({ text, priceColors }: { text: string; priceColors: Record<num
   const withoutPrice = priceMatch ? text.slice(0, priceMatch.index) : text;
   // Highlight quantity number (e.g. "9×") in accent color
   const qtyMatch = withoutPrice.match(/^(\d+×)/);
-  const rest = qtyMatch ? withoutPrice.slice(qtyMatch[0].length) : withoutPrice;
-  const label = qtyMatch ? (
+  const afterQty = qtyMatch ? withoutPrice.slice(qtyMatch[0].length) : withoutPrice;
+  // Parse game number "(#XXXXX)" from the remaining text
+  const numMatch = afterQty.match(/\s*\(#(\d+)\)/);
+  const gameName = numMatch ? afterQty.slice(0, numMatch.index) : afterQty;
+  const gameNum = numMatch ? numMatch[0] : null;
+
+  const label = (
     <>
-      <span style={{ color: T.accent, fontWeight: T.weightDisplay, marginRight: 4 }}>{qtyMatch[1]}</span>
-      {rest}
+      {qtyMatch && <span style={{ color: T.accent, fontWeight: T.weightDisplay, marginRight: 4 }}>{qtyMatch[1]}</span>}
+      {gameName}
+      {gameNum && <span style={{ fontSize: T.sizeCaption, fontWeight: T.weightBody, color: T.textTertiary, marginLeft: 3 }}>{gameNum}</span>}
     </>
-  ) : <>{rest}</>;
+  );
 
   if (!priceMatch) return <>{label}</>;
   const price = parseInt(priceMatch[1]);
@@ -54,9 +60,10 @@ interface Props {
   disabled?: boolean;
   dashboardGameIds?: Set<number>;
   header?: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
-export default function ComparisonTable({ block, onCompare, dashboardGameIds, header }: Props) {
+export default function ComparisonTable({ block, onCompare, dashboardGameIds, header, footer }: Props) {
   // Map each row to a game_id if available (game_ids array corresponds to rows in order)
   const rowGameIds = block.game_ids && block.game_ids.length === block.rows.length
     ? block.game_ids
@@ -199,6 +206,7 @@ export default function ComparisonTable({ block, onCompare, dashboardGameIds, he
           })}
         </tbody>
       </table>
+      {footer}
     </div>
   );
 }

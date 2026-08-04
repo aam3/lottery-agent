@@ -4,7 +4,7 @@ import { T, S, OUTCOME_COLORS, buildPriceColors } from "@/lib/tokens";
 import { PricePill } from "@/lib/chartUtils";
 import type { OutcomeBarsBlock } from "./types";
 
-export default function OutcomeBars({ block, header }: { block: OutcomeBarsBlock; header?: React.ReactNode }) {
+export default function OutcomeBars({ block, header, footer }: { block: OutcomeBarsBlock; header?: React.ReactNode; footer?: React.ReactNode }) {
   const { games } = block;
   const priceColors = buildPriceColors([...new Set(games.map((g) => g.price_tier))]);
 
@@ -73,6 +73,7 @@ export default function OutcomeBars({ block, header }: { block: OutcomeBarsBlock
           );
         })}
       </div>
+      {footer}
     </div>
   );
 }

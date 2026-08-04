@@ -24,10 +24,10 @@ const VISUAL_TO_TOOL: Record<string, string> = {
 };
 
 const VISUAL_QUESTIONS: Record<string, string> = {
-  stats_table: "How do these games compare?",
-  odds_chart: "What should I know about the odds?",
+  stats_table: "Which game is the best value?",
+  odds_chart: "Which prizes are most likely?",
   outcome_bars: "What are my chances of winning?",
-  scatter: "How do these games compare on risk vs reward?",
+  scatter: "Best risk/reward tradeoff?",
 };
 
 interface ToolStep {
@@ -356,9 +356,9 @@ export default function Home() {
     fetchDashboard(newGames.map((g) => g.gameId));
   }
 
-  function handleAskAbout(visual: string) {
+  function handleAskAbout(visual: string, questionOverride?: string) {
     const toolName = VISUAL_TO_TOOL[visual];
-    const question = VISUAL_QUESTIONS[visual];
+    const question = questionOverride || VISUAL_QUESTIONS[visual];
     if (!toolName || !question) return;
 
     // Set pending tool hint and pre-fill the input
