@@ -52,25 +52,28 @@ export default function OddsChart({ block, header }: { block: OddsChartBlock; he
     <div style={{ ...S.card, padding: 16, display: "flex", flexDirection: "column", height: header ? 380 : 340 }}>
       {header}
 
-      {/* Legend (multi-game only) */}
-      {!isSingle && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, marginBottom: 8, paddingRight: 8 }}>
-          {games.map((g, i) => (
-            <div key={`${g.game_name}-${g.game_number}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <LineSwatch color={priceColors[g.price_tier] ?? "#999"} dashArray={lineStyles[i]} />
-              <span style={{ fontSize: T.sizeSmall, color: T.textPrimary, fontFamily: T.font }}>
-                {g.game_name}
-                <span style={{ marginLeft: 3 }}>
-                  (#{g.game_number})
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {/* Legend (multi-game only) — overlaid on top-right of chart area */}
+        {!isSingle && (
+          <div style={{
+            position: "absolute", top: 4, right: 12, zIndex: 1,
+            display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4,
+            background: "rgba(255,255,255,0.9)", borderRadius: T.smallRadius, padding: "6px 8px",
+          }}>
+            {games.map((g, i) => (
+              <div key={`${g.game_name}-${g.game_number}`} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <LineSwatch color={priceColors[g.price_tier] ?? "#999"} dashArray={lineStyles[i]} />
+                <span style={{ fontSize: T.sizeSmall, color: T.textPrimary, fontFamily: T.font }}>
+                  {g.game_name}
+                  <span style={{ marginLeft: 3 }}>
+                    (#{g.game_number})
+                  </span>
                 </span>
-              </span>
-              <PricePill price={g.price_tier} color={priceColors[g.price_tier]} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ flex: 1, minHeight: 0 }}>
+                <PricePill price={g.price_tier} color={priceColors[g.price_tier]} />
+              </div>
+            ))}
+          </div>
+        )}
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={lineData} margin={{ top: 8, right: 12, bottom: 28, left: 20 }}>
             <XAxis
