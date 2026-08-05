@@ -169,7 +169,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
         thresholds: {
           type: "array",
           items: { type: "number" },
-          description: "Net-profit dollar amounts to check. Single: [500]. Multiple: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000].",
+          description: "Dollar amounts the user wants to win (net profit after ticket cost). Derived from the user's prize goal. Single: [50]. Broad scan: [0, 10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000].",
         },
       },
       required: ["game_ids", "thresholds"],
@@ -232,7 +232,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "optimize_multi_ticket_bundle",
     description:
-      "The only way to determine how many tickets to buy of each game. Given a budget, goal, and risk tolerance, computes the optimal bundle — which games and how many of each — using convolution math that per-ticket odds cannot replicate. Without this tool, you can recommend individual games based on their metrics, but you cannot determine ticket quantities or construct multi-game bundles. Use your analysis tools to narrow game candidates before passing them here. Returns the recommended bundle, P(reach goal), P(win anything), and a plain-English explanation.",
+      "The only way to determine how many tickets to buy of each game. Given a budget, goal, and risk tolerance, computes the optimal bundle — which games and how many of each — using convolution math that per-ticket odds cannot replicate. Do not call until the user has stated their budget, prize goal, and risk tolerance. Without this tool, you can recommend individual games based on their metrics, but you cannot determine ticket quantities or construct multi-game bundles. Use your analysis tools to narrow game candidates before passing them here. Returns the recommended bundle, P(reach goal), P(win anything), and a plain-English explanation.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -255,7 +255,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
           type: "string",
           enum: ["low", "mid", "high"],
           description:
-            "Determines the bundle composition. Different risk levels produce different game selections and ticket quantities — low favors games with high win rates, high concentrates on games with the best goal probability regardless of win rate.",
+            "The user's risk tolerance — how much they're willing to lose chasing their goal. Low: still wants to win something — bundles skew toward high win-rate games. Mid: balanced. High: fine losing it all for the best shot at the goal — bundles concentrate on highest goal probability.",
         },
       },
       required: ["game_ids", "budget", "goal", "risk"],
