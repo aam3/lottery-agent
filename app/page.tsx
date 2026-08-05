@@ -387,6 +387,7 @@ export default function Home() {
           background: T.navBg,
           display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
           padding: "0 20px",
           flexShrink: 0,
           position: "relative",
@@ -399,12 +400,53 @@ export default function Home() {
             fontSize: 17,
             color: T.navLogoScratch,
             letterSpacing: -0.3,
-            marginRight: 24,
             lineHeight: 1,
           }}
         >
           Scratch<span style={{ color: T.navLogoSmart }}>Smart</span>
         </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <span
+            style={{
+              fontSize: T.sizeSmall,
+              fontWeight: T.weightLabel,
+              fontFamily: T.font,
+              color: T.navInactiveText,
+              cursor: "pointer",
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.navCtaBg; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.navInactiveText; }}
+          >
+            About
+          </span>
+          <span
+            style={{
+              fontSize: T.sizeSmall,
+              fontWeight: T.weightLabel,
+              fontFamily: T.font,
+              color: T.navInactiveText,
+              background: "transparent",
+              padding: "5px 14px",
+              borderRadius: T.smallRadius,
+              border: "1px solid rgba(255,255,255,0.4)",
+              cursor: "pointer",
+              transition: "border-color 0.15s, background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = T.navCtaBg;
+              e.currentTarget.style.borderColor = "rgba(254,231,136,0.5)";
+              e.currentTarget.style.background = "rgba(254,231,136,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = T.navInactiveText;
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Log In
+          </span>
+        </div>
       </header>
 
       {/* Two-panel layout */}
