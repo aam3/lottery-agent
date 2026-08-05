@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { runAgentLoop } from "@/lib/agentLoop";
 import { writeTrace } from "@/lib/traceLogger";
+import { get_freshness } from "@/lib/tools";
 
 export async function POST(request: Request) {
   // Parse request body
@@ -89,6 +90,15 @@ export async function POST(request: Request) {
     }
   }
 
+  // Fetch freshness timestamp for the state (once per request, not per iteration)
+  let freshnessTimestamp: string | undefined;
+  if (state !== "unknown") {
+    const freshness = await get_freshness({ state });
+    if ("last_scraped_at" in freshness) {
+      freshnessTimestamp = freshness.last_scraped_at as string;
+    }
+  }
+
   // Run the agent loop
   const startTime = Date.now();
   try {
@@ -107,6 +117,11 @@ export async function POST(request: Request) {
       usage: result.usage,
       duration_ms: Date.now() - startTime,
     }).catch((err) => console.error("[trace] Failed to write:", err));
+
+    // Append freshness block to blocks-based responses
+    if (freshnessTimestamp && result.blocks) {
+      result.blocks.push({ type: "freshness", timestamp: freshnessTimestamp });
+    }
 
     return NextResponse.json(result);
   } catch (err) {

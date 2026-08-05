@@ -96,7 +96,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_freshness",
     description:
-      "Check when data was last scraped for a state. Returns the last_scraped_at timestamp. Use this to include a freshness note at the end of responses.",
+      "Check when data was last scraped for a state. Returns the last_scraped_at timestamp.",
     input_schema: {
       type: "object" as const,
       properties: {

@@ -71,6 +71,11 @@ export interface RecentBigWinsBlock {
   wins: { date: string; prize: string; claimed: number }[];
 }
 
+export interface FreshnessBlock {
+  type: "freshness";
+  timestamp: string;
+}
+
 export interface OutcomeBarsBlock {
   type: "outcome_bars";
   games: {
@@ -93,4 +98,5 @@ export type Block =
   | ChoicesBlock
   | ExploreOptionsBlock
   | RecentBigWinsBlock
-  | OutcomeBarsBlock;
+  | OutcomeBarsBlock
+  | FreshnessBlock;

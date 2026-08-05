@@ -11,6 +11,7 @@ import ChoicesBlock from "./ChoicesBlock";
 import ExploreOptions from "./ExploreOptions";
 import RecentBigWins from "./RecentBigWins";
 import OutcomeBars from "./OutcomeBars";
+import FreshnessBlock from "./FreshnessBlock";
 
 interface BlockRendererProps {
   blocks: Block[];
@@ -64,6 +65,8 @@ function renderBlock(
       return <RecentBigWins block={block} />;
     case "outcome_bars":
       return <OutcomeBars block={block} />;
+    case "freshness":
+      return <FreshnessBlock block={block} />;
     default:
       return null;
   }
@@ -79,7 +82,7 @@ export default function BlockRenderer({
   dashboardGameIds,
 }: BlockRendererProps) {
   // Enforce display order: content first, then interactive (choices/explore_options),
-  // then freshness ("data last updated") last. Preserves relative order within each group.
+  // then freshness last. Preserves relative order within each group.
   const content: Block[] = [];
   const interactive: Block[] = [];
   const freshness: Block[] = [];
@@ -87,7 +90,7 @@ export default function BlockRenderer({
   for (const block of blocks) {
     if (block.type === "choices" || block.type === "explore_options") {
       interactive.push(block);
-    } else if (block.type === "text" && /data last updated/i.test(block.content)) {
+    } else if (block.type === "freshness") {
       freshness.push(block);
     } else {
       content.push(block);
