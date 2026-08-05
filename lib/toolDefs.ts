@@ -157,7 +157,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_marginal_odds",
     description:
-      "Probability of winning at least a specific dollar amount for one or more games. Goal-dependent — requires a dollar target from the user. Use when the user cares about reaching a specific prize level, or wants a detailed view into the prize remaining distribution. Does not measure general win/loss odds (use get_outcome_probabilities) or the top prize specifically (use get_top_prizes). Requires game IDs from query_games.",
+      "Probability of winning at least a specific dollar amount for one or more games. Goal-dependent — requires a dollar target from the user. Use when the user cares about reaching a specific prize level. Does not measure general win/loss odds (use get_outcome_probabilities) or the top prize specifically (use get_top_prizes). Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -179,7 +179,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "get_depletion",
     description:
-      "How much of a game's prize pool has been claimed, in three dollar bands (high: $500+, mid: $50-499, low: under $50). Supplementary context, not a decision driver — probabilities should always guide recommendations, but depletion shows whether a game's prizes are well-stocked or picked over. Particularly relevant when the user cares about large or top prizes, since older, more depleted games have fewer remaining. NULL when no prizes exist in a given band. Requires game IDs from query_games.",
+      "How much of a game's prize pool has been claimed, in three dollar bands (high: $500+, mid: $50-499, low: under $50). Shows whether a game's prizes are well-stocked or picked over. NULL when no prizes exist in a given band. Requires game IDs from query_games.",
     input_schema: {
       type: "object" as const,
       properties: {
