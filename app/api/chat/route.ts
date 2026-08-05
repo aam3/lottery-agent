@@ -118,9 +118,15 @@ export async function POST(request: Request) {
       duration_ms: Date.now() - startTime,
     }).catch((err) => console.error("[trace] Failed to write:", err));
 
-    // Append freshness block to blocks-based responses
+    // Append freshness block only when the response contains data blocks
     if (freshnessTimestamp && result.blocks) {
-      result.blocks.push({ type: "freshness", timestamp: freshnessTimestamp });
+      const hasDataBlocks = result.blocks.some(
+        (b: { type: string }) =>
+          !["text", "choices", "explore_options", "freshness"].includes(b.type)
+      );
+      if (hasDataBlocks) {
+        result.blocks.push({ type: "freshness", timestamp: freshnessTimestamp });
+      }
     }
 
     return NextResponse.json(result);

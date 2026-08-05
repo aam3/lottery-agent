@@ -770,8 +770,14 @@ export async function render_response(params: { blocks: unknown[] }) {
   const hasExploreOptions = params.blocks.some(
     (b) => (b as { type: string }).type === "explore_options"
   );
+  const hasDataBlocks = params.blocks.some(
+    (b) => !["text", "choices", "explore_options", "freshness"].includes(
+      (b as { type: string }).type
+    )
+  );
 
-  if (!hasChoices && !hasExploreOptions) {
+  // Data-driven responses (game cards, tables, etc.) must include interaction
+  if (hasDataBlocks && !hasChoices && !hasExploreOptions) {
     return {
       error:
         "Response has no user interaction. Include a choices block or pass through explore_options from an explore tool.",

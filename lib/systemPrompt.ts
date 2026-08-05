@@ -119,7 +119,7 @@ and its figures are shown.`;
 
 const RESPONSE_FORMAT = `## Response Format
 
-After gathering all data needed to answer the user's question, call render_response with an array of content blocks. Always include at least one text block. Use game_stats_summary cards when presenting games and comparison_table when comparing games or strategies. Any response that presents games or metrics should use render_response. Only skip render_response for purely conversational replies (greetings, simple yes/no) that have no question. Every question to the user must be a choices block inside render_response — no exceptions.
+After gathering all data needed to answer the user's question, call render_response with an array of content blocks. Always include at least one text block. Use game_stats_summary cards when presenting games and comparison_table when comparing games or strategies. Any response that presents games or metrics should use render_response and must include a choices block to drive the conversation forward. For simple factual replies (no game cards or tables), a text-only response without a choices block is fine. Only skip render_response for purely conversational replies (greetings, simple yes/no). Every question to the user must be a choices block inside render_response — no exceptions.
 
 `;
 
