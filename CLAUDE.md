@@ -121,6 +121,10 @@ If unsure whether a reference exists, list the contents of `.claude/_reference/`
 - Domain knowledge sections should be conceptual, not instructional — no agent directives in domain knowledge
 - Tool input schemas should create natural dependency chains between tools so the agent discovers the progression
 - Agent questions should be about the user's situation, not about which analysis to run — tool selection is the agent's job
+- Don't list specific tool names or parameter names in the system prompt — keep it tool-agnostic so it doesn't need updating when tools change
+- Tool-level preconditions ("do not call until X") are more effective than parameter-level instructions for preventing unwanted tool calls
+- When the agent ignores parameter-level guidance, escalate to the tool's top-level description — not the system prompt
+- Programmatically inject data the agent would otherwise fetch via tool call on every response
 
 ### Writing Style
 
