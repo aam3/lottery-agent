@@ -784,7 +784,26 @@ export async function render_response(params: { blocks: unknown[] }) {
     };
   }
 
-  // Pass blocks through as-is. Display order (interactive before freshness,
+  // When a choices block is present, strip trailing question from the last
+  // text block to avoid the agent asking the same question twice (once in
+  // prose, once in the choices block).
+  if (hasChoices) {
+    for (let i = params.blocks.length - 1; i >= 0; i--) {
+      const block = params.blocks[i] as { type: string; content?: string };
+      if (block.type === "text" && block.content) {
+        // Strip trailing question sentence(s) — the choices block already
+        // presents the question. Match from the last period/exclamation
+        // (or start of string) through a trailing "?".
+        const stripped = block.content.replace(/([.!])\s+[^.!]*\?\s*$/, "$1").trim();
+        if (stripped.length > 0 && stripped !== block.content.trim()) {
+          block.content = stripped;
+        }
+        break;
+      }
+    }
+  }
+
+  // Pass blocks through. Display order (interactive before freshness,
   // content before interactive) is enforced by the frontend BlockRenderer.
   return { blocks: params.blocks as unknown[] };
 }

@@ -172,7 +172,7 @@ export default function Home() {
 
   // ─── Chat messaging ──────────────────────────────────────────────────────
 
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, displayText?: string) {
     if (!selectedState) {
       setError("Select a state first.");
       return;
@@ -186,7 +186,7 @@ export default function Home() {
 
     // Show user message immediately as a pending turn
     const pendingTurn: Turn = {
-      question: trimmed,
+      question: displayText?.trim() || trimmed,
       steps: [],
       usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, iterations: 0 },
     };
@@ -270,7 +270,7 @@ export default function Home() {
       inputRef.current?.focus();
       return;
     }
-    sendMessage(`${prompt} ${choice}`);
+    sendMessage(`${prompt} ${choice}`, choice);
   }
 
   function handleExploreSelect(option: string) {
@@ -304,10 +304,10 @@ export default function Home() {
           };
           const alreadyInTray = dashboardGames.some((g) => g.gameId === newGame.gameId);
           const newGames = alreadyInTray ? dashboardGames : [...dashboardGames, newGame];
-          setDashboardGames(newGames.slice(0, 4));
+          setDashboardGames(newGames.slice(0, 5));
           // Re-fetch with all tray game IDs for combined view
           if (newGames.length > 1 && !alreadyInTray) {
-            fetchDashboard(newGames.slice(0, 4).map((g) => g.gameId));
+            fetchDashboard(newGames.slice(0, 5).map((g) => g.gameId));
           } else {
             setDashboardData(data);
             setDashboardMode("active");
@@ -326,7 +326,7 @@ export default function Home() {
       ? dashboardGames
       : [...dashboardGames, { gameId, gameName, gameNumber }];
 
-    if (newGames.length > 4) {
+    if (newGames.length > 5) {
       const singleGame = [{ gameId, gameName, gameNumber }];
       setDashboardGames(singleGame);
       fetchDashboard(singleGame.map((g) => g.gameId));
@@ -345,7 +345,7 @@ export default function Home() {
         newGames.push({ gameId: id, gameName: "", gameNumber: "" });
       }
     }
-    const trimmed = newGames.slice(0, 4);
+    const trimmed = newGames.slice(0, 5);
     setDashboardGames(trimmed);
     fetchDashboard(trimmed.map((g) => g.gameId));
   }
