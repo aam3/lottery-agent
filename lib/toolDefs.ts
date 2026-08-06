@@ -255,7 +255,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
           type: "string",
           enum: ["low", "mid", "high"],
           description:
-            "The user's risk tolerance — how much they're willing to lose chasing their goal. Low: still wants to win something — bundles skew toward high win-rate games. Mid: balanced. High: fine losing it all for the best shot at the goal — bundles concentrate on highest goal probability.",
+            "The user's risk tolerance: low, mid, or high. Cannot be inferred from budget or goal — must be asked directly. Exception: if the user's goal is to win any cash (goal = 0), risk is low by definition.",
         },
       },
       required: ["game_ids", "budget", "goal", "risk"],

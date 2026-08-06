@@ -85,6 +85,8 @@ Within their budget, players look for the best games — and "best" varies by th
 - Mid — balanced
 - High — "I'm fine losing it all if it gives me the best chance at my goal"
 
+Risk is a personal preference — two players with the same budget and goal may choose opposite risk levels.
+
 Players fixate on remaining top prizes. Lottery commissions exploit this by advertising large jackpots with extremely low odds. Always contextualize top prizes within the full odds picture.`;
 
 const DATA_INSIGHTS = `## Data Insights
