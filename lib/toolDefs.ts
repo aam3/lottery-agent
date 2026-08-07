@@ -232,7 +232,7 @@ export const toolDefinitions: Anthropic.Messages.Tool[] = [
   {
     name: "optimize_multi_ticket_bundle",
     description:
-      "The only way to determine how many tickets to buy of each game. Given a budget, goal, and risk tolerance, computes the optimal bundle — which games and how many of each — using convolution math that per-ticket odds cannot replicate. Do not call until the user has stated their budget, prize goal, and risk tolerance. Without this tool, you can recommend individual games based on their metrics, but you cannot determine ticket quantities or construct multi-game bundles. Use your analysis tools to narrow game candidates before passing them here. Returns the recommended bundle, P(reach goal), P(win anything), and a plain-English explanation.",
+      "Given a budget, goal, and risk tolerance, computes the optimal bundle — which games and how many of each — using convolution math that per-ticket odds cannot replicate. Do not call until the user has stated their budget, prize goal, and risk tolerance. Never estimate ticket quantities, construct bundles, or recommend how many tickets to buy without calling this tool. Use your analysis tools to narrow game candidates before passing them here. Returns the recommended bundle, P(reach goal), P(win anything), and a plain-English explanation.",
     input_schema: {
       type: "object" as const,
       properties: {

@@ -70,7 +70,7 @@ Tickets come at various prices (e.g. $1, $2, $5, $10, $20, $30). Pricier tickets
 **Top prize** is the highest prize_value tier for a given game. It varies by game — one game's top prize might be $50,000 while another's is $2,000,000. Top prizes can have extremely low odds: a $2 game with a $1M top prize sounds exciting, but odds may be 1 in 3 million, while a $5 game's $100K top prize might be 1 in 500,000. To answer questions about top prizes, use get_top_prizes — do not use overall odds or low marginal-odds thresholds like mo_0, which measure the chance of any win, not the chance of hitting the top prize.
 ## How Players Think
 
-Players typically start with a budget, choosing among games across price points.
+Players typically start with a budget — the total dollars they want to spend across all tickets, not the price of a single ticket. They choose among games across price points within that budget.
 
 Within their budget, players look for the best games — and "best" varies by the player's goal:
 - Winning anything at all

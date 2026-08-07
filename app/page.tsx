@@ -85,6 +85,8 @@ export default function Home() {
     toolName: string;
     gameIds: number[];
   } | null>(null);
+  // Stashed prompt from choices block when user clicks "Something else"
+  const [pendingChoicePrompt, setPendingChoicePrompt] = useState<string | null>(null);
 
   // Set of game IDs currently on the dashboard — drives "+ Explore" / "✓" toggle
   const dashboardGameIdSet = useMemo(
@@ -133,6 +135,7 @@ export default function Home() {
     setError("");
     setInput("");
     setPendingToolHint(null);
+    setPendingChoicePrompt(null);
     conversationIdRef.current = `conv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   }
 
@@ -262,11 +265,18 @@ export default function Home() {
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
   function handleSend() {
-    sendMessage(input);
+    if (pendingChoicePrompt) {
+      const prompt = pendingChoicePrompt;
+      setPendingChoicePrompt(null);
+      sendMessage(`${prompt} ${input}`, input);
+    } else {
+      sendMessage(input);
+    }
   }
 
   function handleChoiceSelect(choice: string, prompt: string) {
     if (choice.toLowerCase() === "something else") {
+      setPendingChoicePrompt(prompt);
       inputRef.current?.focus();
       return;
     }
