@@ -763,7 +763,97 @@ export async function build_game_card(params: {
 
 // ─── Response formatting ──────────────────────────────────────────────────────
 
-export async function render_response(params: { blocks: unknown[] }) {
+export async function render_response(params: { blocks: unknown[] | string }) {
+  // Defensive parse: models sometimes serialize the blocks array as a JSON string
+  if (typeof params.blocks === "string") {
+    try {
+      params.blocks = JSON.parse(params.blocks);
+    } catch {
+      return { error: "Invalid blocks: expected an array of content blocks." };
+    }
+  }
+
+  if (!Array.isArray(params.blocks)) {
+    return { error: "Invalid blocks: expected an array of content blocks." };
+  }
+
+  // Repair: if a text block ends with a question followed by a list of
+  // options, extract them into a proper choices block. Works backwards
+  // from the end of each text block using line-by-line detection rather
+  // than a single regex — handles varied bullet styles, blank lines
+  // between items, and numbered lists.
+  for (let i = params.blocks.length - 1; i >= 0; i--) {
+    const block = params.blocks[i] as { type: string; content?: string };
+    if (block.type !== "text" || !block.content) continue;
+
+    const lines = block.content.split("\n");
+
+    // Scan backwards to find contiguous list items at the end
+    const isBullet = (s: string) =>
+      /^\s*[-*•]\s+/.test(s) || /^\s*\d+[.)]\s+/.test(s);
+    let listStartIdx = lines.length;
+    for (let j = lines.length - 1; j >= 0; j--) {
+      if (lines[j].trim().length === 0) continue; // skip blank lines
+      if (isBullet(lines[j])) {
+        listStartIdx = j;
+      } else {
+        break;
+      }
+    }
+
+    // Need at least 2 list items
+    const listLines = lines
+      .slice(listStartIdx)
+      .filter((l) => l.trim().length > 0);
+    if (listLines.length < 2) continue;
+
+    // Find the last question line (ending with ?) before the list
+    let questionIdx = -1;
+    for (let j = listStartIdx - 1; j >= 0; j--) {
+      const trimmed = lines[j].trim();
+      if (trimmed.length === 0) continue; // skip blank lines
+      if (trimmed.endsWith("?")) {
+        questionIdx = j;
+      }
+      break; // stop at first non-blank line — question or not
+    }
+    if (questionIdx === -1) continue;
+
+    // Extract question and options
+    const question = lines[questionIdx].trim();
+    const options = listLines
+      .map((l) =>
+        l
+          .trim()
+          .replace(/^\s*[-*•]\s+/, "")
+          .replace(/^\s*\d+[.)]\s+/, "")
+          .replace(/\*\*/g, "")
+          .trim()
+      )
+      .filter((o) => o.length > 0);
+
+    if (options.length < 2) continue;
+
+    // Keep text before the question line
+    const before = lines.slice(0, questionIdx).join("\n").trim();
+    if (before.length > 0) {
+      block.content = before;
+    } else {
+      params.blocks.splice(i, 1);
+    }
+
+    // Insert the choices block
+    const insertAt = before.length > 0 ? i + 1 : i;
+    params.blocks.splice(insertAt, 0, {
+      type: "choices",
+      prompt: question,
+      options: options.some((o) => /something else/i.test(o))
+        ? options
+        : [...options, "Something else"],
+    });
+    break;
+  }
+
   const hasChoices = params.blocks.some(
     (b) => (b as { type: string }).type === "choices"
   );
@@ -791,9 +881,6 @@ export async function render_response(params: { blocks: unknown[] }) {
     for (let i = params.blocks.length - 1; i >= 0; i--) {
       const block = params.blocks[i] as { type: string; content?: string };
       if (block.type === "text" && block.content) {
-        // Strip trailing question sentence(s) — the choices block already
-        // presents the question. Match from the last period/exclamation
-        // (or start of string) through a trailing "?".
         const stripped = block.content.replace(/([.!])\s+[^.!]*\?\s*$/, "$1").trim();
         if (stripped.length > 0 && stripped !== block.content.trim()) {
           block.content = stripped;
